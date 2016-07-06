@@ -1,4 +1,4 @@
-const choo = require('choo')
+const html = require('choo/html')
 const todoItemView = require('./todo-item')
 
 const filterTodos = (todos, filter) => {
@@ -12,7 +12,7 @@ const filterTodos = (todos, filter) => {
 const filteredTodos = (state, send) =>
   filterTodos(state.todos, state.filter).map(todo => todoItemView(todo, todo.id === state.editing, send))
 
-const todoListView = (state, send) => choo.view`
+const todoListView = (state, send) => html`
   <ul class="todo-list">${filteredTodos(state, send)}</ul>
 `
 

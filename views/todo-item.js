@@ -1,4 +1,4 @@
-const choo = require('choo')
+const html = require('choo/html')
 
 const update = (e, todo, send) => send('update', { payload: { id: todo.id, name: e.target.value } })
 
@@ -6,15 +6,15 @@ const handleEditKeydown = (e, todo, send) => {
   if (e.keyCode === 13) { // Enter
     update(e, todo, send)
   } else if (e.code === 27) { // Escape
-    send('cancelEditing');
+    send('cancelEditing')
   }
 }
 
 const classList =
   classes => Object.keys(classes).reduce((acc, k) => classes[k] ? acc.push(k) && acc : acc, []).join(' ')
 
-const todoItemView = (todo, editing, send) => choo.view`
-  <li class=${classList({ completed : todo.done, editing: editing })}>
+const todoItemView = (todo, editing, send) => html`
+  <li class=${classList({ completed: todo.done, editing: editing })}>
     <div class="view">
       <input
         type="checkbox"

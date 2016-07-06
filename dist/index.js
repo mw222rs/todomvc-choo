@@ -14,28 +14,10 @@ app.router(function (route) {
 var tree = app.start();
 document.body.appendChild(tree);
 
-},{"./model":2,"./views/main":28,"choo":7}],2:[function(require,module,exports){
+},{"./model":2,"./views/main":30,"choo":8}],2:[function(require,module,exports){
 'use strict';
 
 var xtend = require('xtend');
-
-var STORAGE_ID = 'todos-choo';
-var save = function save(action, state, send) {
-  var data = {
-    counter: state.counter,
-    todos: state.todos
-  };
-  localStorage.setItem(STORAGE_ID, JSON.stringify(data));
-};
-
-var init = function init(send) {
-  setTimeout(function () {
-    var json = localStorage.getItem(STORAGE_ID);
-    if (json) {
-      send('init', { payload: JSON.parse(json) });
-    }
-  }, 1);
-};
 
 module.exports = {
   state: {
@@ -48,23 +30,20 @@ module.exports = {
     todos: []
   },
   reducers: {
-    init: function init(action, state) {
-      return { counter: action.payload.counter, todos: action.payload.todos };
+    updateNew: function updateNew(data, state, prev) {
+      return { name: data.payload };
     },
-    updateNew: function updateNew(action, state) {
-      return { name: action.payload };
-    },
-    add: function add(action, state) {
+    add: function add(data, state, prev) {
       return {
         counter: state.counter + 1,
         name: '',
         todos: state.todos.concat({ id: state.counter, name: state.name, done: false })
       };
     },
-    toggle: function toggle(action, state) {
+    toggle: function toggle(data, state, prev) {
       return {
         todos: state.todos.map(function (todo) {
-          if (todo.id === action.payload) {
+          if (todo.id === data.payload) {
             return xtend({}, todo, { done: !todo.done });
           } else {
             return todo;
@@ -72,39 +51,39 @@ module.exports = {
         })
       };
     },
-    edit: function edit(action, state) {
-      return { editing: action.payload };
+    edit: function edit(data, state, prev) {
+      return { editing: data.payload };
     },
-    cancelEditing: function cancelEditing(action, state) {
+    cancelEditing: function cancelEditing(data, state, prev) {
       return { editing: null };
     },
-    update: function update(action, state) {
+    update: function update(data, state, prev) {
       return {
         editing: null,
         todos: state.todos.map(function (todo) {
-          if (todo.id === action.payload.id) {
-            return xtend({}, todo, { name: action.payload.name });
+          if (todo.id === data.payload.id) {
+            return xtend({}, todo, { name: data.payload.name });
           } else {
             return todo;
           }
         })
       };
     },
-    delete: function _delete(action, state) {
+    delete: function _delete(data, state, prev) {
       return {
         todos: state.todos.filter(function (todo) {
-          return todo.id !== action.payload;
+          return todo.id !== data.payload;
         })
       };
     },
-    clearCompleted: function clearCompleted(action, state) {
+    clearCompleted: function clearCompleted(data, state, prev) {
       return {
         todos: state.todos.filter(function (todo) {
           return !todo.done;
         })
       };
     },
-    toggleAll: function toggleAll(action, state) {
+    toggleAll: function toggleAll(data, state, prev) {
       var allDone = state.todos.every(function (todo) {
         return todo.done;
       });
@@ -114,22 +93,15 @@ module.exports = {
         })
       };
     },
-    filter: function filter(action, state) {
-      return { filter: action.payload };
+    filter: function filter(data, state, prev) {
+      return { filter: data.payload };
     }
-  },
-  effects: {
-    add: save,
-    toggle: save,
-    update: save,
-    delete: save,
-    clearCompleted: save,
-    toggleAll: save
-  },
-  subscriptions: [init]
+  }
 };
 
-},{"xtend":24}],3:[function(require,module,exports){
+},{"xtend":25}],3:[function(require,module,exports){
+'use strict';
+
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -189,8 +161,7 @@ assert.AssertionError = function AssertionError(options) {
 
   if (Error.captureStackTrace) {
     Error.captureStackTrace(this, stackStartFunction);
-  }
-  else {
+  } else {
     // non v8 browsers so we can have a stacktrace
     var err = new Error();
     if (err.stack) {
@@ -236,9 +207,7 @@ function truncate(s, n) {
 }
 
 function getMessage(self) {
-  return truncate(JSON.stringify(self.actual, replacer), 128) + ' ' +
-         self.operator + ' ' +
-         truncate(JSON.stringify(self.expected, replacer), 128);
+  return truncate(JSON.stringify(self.actual, replacer), 128) + ' ' + self.operator + ' ' + truncate(JSON.stringify(self.expected, replacer), 128);
 }
 
 // At present only the three keys mentioned above are used and
@@ -307,7 +276,6 @@ function _deepEqual(actual, expected) {
   // 7.1. All identical values are equivalent, as determined by ===.
   if (actual === expected) {
     return true;
-
   } else if (util.isBuffer(actual) && util.isBuffer(expected)) {
     if (actual.length != expected.length) return false;
 
@@ -317,32 +285,28 @@ function _deepEqual(actual, expected) {
 
     return true;
 
-  // 7.2. If the expected value is a Date object, the actual value is
-  // equivalent if it is also a Date object that refers to the same time.
+    // 7.2. If the expected value is a Date object, the actual value is
+    // equivalent if it is also a Date object that refers to the same time.
   } else if (util.isDate(actual) && util.isDate(expected)) {
     return actual.getTime() === expected.getTime();
 
-  // 7.3 If the expected value is a RegExp object, the actual value is
-  // equivalent if it is also a RegExp object with the same source and
-  // properties (`global`, `multiline`, `lastIndex`, `ignoreCase`).
+    // 7.3 If the expected value is a RegExp object, the actual value is
+    // equivalent if it is also a RegExp object with the same source and
+    // properties (`global`, `multiline`, `lastIndex`, `ignoreCase`).
   } else if (util.isRegExp(actual) && util.isRegExp(expected)) {
-    return actual.source === expected.source &&
-           actual.global === expected.global &&
-           actual.multiline === expected.multiline &&
-           actual.lastIndex === expected.lastIndex &&
-           actual.ignoreCase === expected.ignoreCase;
+    return actual.source === expected.source && actual.global === expected.global && actual.multiline === expected.multiline && actual.lastIndex === expected.lastIndex && actual.ignoreCase === expected.ignoreCase;
 
-  // 7.4. Other pairs that do not both pass typeof value == 'object',
-  // equivalence is determined by ==.
+    // 7.4. Other pairs that do not both pass typeof value == 'object',
+    // equivalence is determined by ==.
   } else if (!util.isObject(actual) && !util.isObject(expected)) {
     return actual == expected;
 
-  // 7.5 For all other Object pairs, including Array objects, equivalence is
-  // determined by having the same number of owned properties (as verified
-  // with Object.prototype.hasOwnProperty.call), the same set of keys
-  // (although not necessarily the same order), equivalent values for every
-  // corresponding key, and an identical 'prototype' property. Note: this
-  // accounts for both named and indexed properties on Arrays.
+    // 7.5 For all other Object pairs, including Array objects, equivalence is
+    // determined by having the same number of owned properties (as verified
+    // with Object.prototype.hasOwnProperty.call), the same set of keys
+    // (although not necessarily the same order), equivalent values for every
+    // corresponding key, and an identical 'prototype' property. Note: this
+    // accounts for both named and indexed properties on Arrays.
   } else {
     return objEquiv(actual, expected);
   }
@@ -353,8 +317,7 @@ function isArguments(object) {
 }
 
 function objEquiv(a, b) {
-  if (util.isNullOrUndefined(a) || util.isNullOrUndefined(b))
-    return false;
+  if (util.isNullOrUndefined(a) || util.isNullOrUndefined(b)) return false;
   // an identical 'prototype' property.
   if (a.prototype !== b.prototype) return false;
   // if one is a primitive, the other must be same
@@ -363,8 +326,7 @@ function objEquiv(a, b) {
   }
   var aIsArgs = isArguments(a),
       bIsArgs = isArguments(b);
-  if ((aIsArgs && !bIsArgs) || (!aIsArgs && bIsArgs))
-    return false;
+  if (aIsArgs && !bIsArgs || !aIsArgs && bIsArgs) return false;
   if (aIsArgs) {
     a = pSlice.call(a);
     b = pSlice.call(b);
@@ -372,18 +334,17 @@ function objEquiv(a, b) {
   }
   var ka = objectKeys(a),
       kb = objectKeys(b),
-      key, i;
+      key,
+      i;
   // having the same number of owned properties (keys incorporates
   // hasOwnProperty)
-  if (ka.length != kb.length)
-    return false;
+  if (ka.length != kb.length) return false;
   //the same set of keys (although not necessarily the same order),
   ka.sort();
   kb.sort();
   //~~~cheap key test
   for (i = ka.length - 1; i >= 0; i--) {
-    if (ka[i] != kb[i])
-      return false;
+    if (ka[i] != kb[i]) return false;
   }
   //equivalent values for every corresponding key, and
   //~~~possibly expensive deep test
@@ -451,8 +412,7 @@ function _throws(shouldThrow, block, expected, message) {
     actual = e;
   }
 
-  message = (expected && expected.name ? ' (' + expected.name + ').' : '.') +
-            (message ? ' ' + message : '.');
+  message = (expected && expected.name ? ' (' + expected.name + ').' : '.') + (message ? ' ' + message : '.');
 
   if (shouldThrow && !actual) {
     fail(actual, expected, 'Missing expected exception' + message);
@@ -462,8 +422,7 @@ function _throws(shouldThrow, block, expected, message) {
     fail(actual, expected, 'Got unwanted exception' + message);
   }
 
-  if ((shouldThrow && actual && expected &&
-      !expectedException(actual, expected)) || (!shouldThrow && actual)) {
+  if (shouldThrow && actual && expected && !expectedException(actual, expected) || !shouldThrow && actual) {
     throw actual;
   }
 }
@@ -471,16 +430,20 @@ function _throws(shouldThrow, block, expected, message) {
 // 11. Expected to throw an error:
 // assert.throws(block, Error_opt, message_opt);
 
-assert.throws = function(block, /*optional*/error, /*optional*/message) {
+assert.throws = function (block, /*optional*/error, /*optional*/message) {
   _throws.apply(this, [true].concat(pSlice.call(arguments)));
 };
 
 // EXTENSION! This is annoying to write outside this module.
-assert.doesNotThrow = function(block, /*optional*/message) {
+assert.doesNotThrow = function (block, /*optional*/message) {
   _throws.apply(this, [false].concat(pSlice.call(arguments)));
 };
 
-assert.ifError = function(err) { if (err) {throw err;}};
+assert.ifError = function (err) {
+  if (err) {
+    throw err;
+  }
+};
 
 var objectKeys = Object.keys || function (obj) {
   var keys = [];
@@ -490,133 +453,266 @@ var objectKeys = Object.keys || function (obj) {
   return keys;
 };
 
-},{"util/":21}],4:[function(require,module,exports){
-var document = require('global/document')
-var hyperx = require('hyperx')
+},{"util/":22}],4:[function(require,module,exports){
+'use strict';
 
-var SVGNS = 'http://www.w3.org/2000/svg'
-var BOOL_PROPS = {
-  autofocus: 1,
-  checked: 1,
-  defaultchecked: 1,
-  disabled: 1,
-  formnovalidate: 1,
-  indeterminate: 1,
-  readonly: 1,
-  required: 1,
-  willvalidate: 1
-}
-var SVG_TAGS = [
-  'svg',
-  'altGlyph', 'altGlyphDef', 'altGlyphItem', 'animate', 'animateColor',
-  'animateMotion', 'animateTransform', 'circle', 'clipPath', 'color-profile',
-  'cursor', 'defs', 'desc', 'ellipse', 'feBlend', 'feColorMatrix',
-  'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting',
-  'feDisplacementMap', 'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB',
-  'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode',
-  'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting',
-  'feSpotLight', 'feTile', 'feTurbulence', 'filter', 'font', 'font-face',
-  'font-face-format', 'font-face-name', 'font-face-src', 'font-face-uri',
-  'foreignObject', 'g', 'glyph', 'glyphRef', 'hkern', 'image', 'line',
-  'linearGradient', 'marker', 'mask', 'metadata', 'missing-glyph', 'mpath',
-  'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect',
-  'set', 'stop', 'switch', 'symbol', 'text', 'textPath', 'title', 'tref',
-  'tspan', 'use', 'view', 'vkern'
-]
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-function belCreateElement (tag, props, children) {
-  var el
+var mutate = require('xtend/mutable');
+var assert = require('assert');
+var xtend = require('xtend');
 
-  // If an svg tag, it needs a namespace
-  if (SVG_TAGS.indexOf(tag) !== -1) {
-    props.namespace = SVGNS
+module.exports = dispatcher;
+
+// initialize a new barracks instance
+// obj -> obj
+function dispatcher(handlers) {
+  handlers = handlers || {};
+  assert.equal(typeof handlers === 'undefined' ? 'undefined' : _typeof(handlers), 'object', 'barracks: handlers should be undefined or an object');
+
+  var onError = wrapOnError(handlers.onError || defaultOnError);
+  var onAction = handlers.onAction;
+  var onStateChange = handlers.onStateChange;
+
+  assert.ok(!handlers.onError || typeof handlers.onError === 'function', 'barracks: onError should be undefined or a function');
+  assert.ok(!onAction || typeof onAction === 'function', 'barracks: onAction should be undefined or a function');
+  assert.ok(!onStateChange || typeof onStateChange === 'function', 'barracks: onStateChange should be undefined or a function');
+
+  var reducersCalled = false;
+  var effectsCalled = false;
+  var stateCalled = false;
+  var subsCalled = false;
+
+  var subscriptions = start._subscriptions = {};
+  var reducers = start._reducers = {};
+  var effects = start._effects = {};
+  var models = start._models = [];
+  var _state = {};
+
+  start.model = setModel;
+  start.state = getState;
+  start.start = start;
+  return start;
+
+  // push a model to be initiated
+  // obj -> null
+  function setModel(model) {
+    assert.equal(typeof model === 'undefined' ? 'undefined' : _typeof(model), 'object', 'barracks.store.model: model should be an object');
+    models.push(model);
   }
 
-  // If we are using a namespace
-  var ns = false
-  if (props.namespace) {
-    ns = props.namespace
-    delete props.namespace
-  }
+  // get the current state from the store
+  // obj? -> obj
+  function getState(opts) {
+    opts = opts || {};
+    assert.equal(typeof opts === 'undefined' ? 'undefined' : _typeof(opts), 'object', 'barracks.store.state: opts should be an object');
+    if (opts.state) {
+      var _ret = function () {
+        var initialState = {};
+        var nsState = {};
+        models.forEach(function (model) {
+          var ns = model.namespace;
+          if (ns) {
+            nsState[ns] = {};
+            apply(ns, model.state, nsState);
+            nsState[ns] = xtend(nsState[ns], opts.state[ns]);
+          } else {
+            apply(model.namespace, model.state, initialState);
+          }
+        });
+        return {
+          v: xtend(_state, xtend(opts.state, nsState))
+        };
+      }();
 
-  // Create the element
-  if (ns) {
-    el = document.createElementNS(ns, tag)
-  } else {
-    el = document.createElement(tag)
-  }
-
-  // Create the properties
-  for (var p in props) {
-    if (props.hasOwnProperty(p)) {
-      var key = p.toLowerCase()
-      var val = props[p]
-      // Normalize className
-      if (key === 'classname') {
-        key = 'class'
-        p = 'class'
-      }
-      // If a property is boolean, set itself to the key
-      if (BOOL_PROPS[key]) {
-        if (val === 'true') val = key
-        else if (val === 'false') continue
-      }
-      // If a property prefers being set directly vs setAttribute
-      if (key.slice(0, 2) === 'on') {
-        el[p] = val
-      } else {
-        if (ns) {
-          el.setAttributeNS(null, p, val)
-        } else {
-          el.setAttribute(p, val)
-        }
-      }
+      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+    } else if (opts.freeze === false) {
+      return xtend(_state);
+    } else {
+      return Object.freeze(xtend(_state));
     }
   }
 
-  function appendChild (childs) {
-    if (!Array.isArray(childs)) return
-    for (var i = 0; i < childs.length; i++) {
-      var node = childs[i]
-      if (Array.isArray(node)) {
-        appendChild(node)
-        continue
-      }
+  // initialize the store handlers, get the send() function
+  // obj? -> fn
+  function start(opts) {
+    opts = opts || {};
+    assert.equal(typeof opts === 'undefined' ? 'undefined' : _typeof(opts), 'object', 'barracks.store.start: opts should be undefined or an object');
 
-      if (typeof node === 'number' ||
-        typeof node === 'boolean' ||
-        node instanceof Date ||
-        node instanceof RegExp) {
-        node = node.toString()
+    // register values from the models
+    models.forEach(function (model) {
+      var ns = model.namespace;
+      if (!stateCalled && model.state && opts.state !== false) {
+        apply(ns, model.state, _state);
       }
+      if (!reducersCalled && model.reducers && opts.reducers !== false) {
+        apply(ns, model.reducers, reducers);
+      }
+      if (!effectsCalled && model.effects && opts.effects !== false) {
+        apply(ns, model.effects, effects);
+      }
+      if (!subsCalled && model.subscriptions && opts.subscriptions !== false) {
+        apply(ns, model.subscriptions, subscriptions, createSend, onError);
+      }
+    });
 
-      if (typeof node === 'string') {
-        if (el.lastChild && el.lastChild.nodeName === '#text') {
-          el.lastChild.nodeValue += node
-          continue
+    if (!opts.noState) stateCalled = true;
+    if (!opts.noReducers) reducersCalled = true;
+    if (!opts.noEffects) effectsCalled = true;
+    if (!opts.noSubscriptions) subsCalled = true;
+
+    return createSend;
+
+    // call an action from a view
+    // (str, bool?) -> (str, any?, fn?) -> null
+    function createSend(selfName, callOnError) {
+      assert.equal(typeof selfName === 'undefined' ? 'undefined' : _typeof(selfName), 'string', 'barracks.store.start.createSend: selfName should be a string');
+      assert.ok(!callOnError || typeof callOnError === 'boolean', 'barracks.store.start.send: callOnError should be undefined or a boolean');
+
+      return function send(name, data, cb) {
+        if (!cb && !callOnError) {
+          cb = data;
+          data = null;
         }
-        node = document.createTextNode(node)
-      }
+        data = typeof data === 'undefined' ? null : data;
 
-      if (node && node.nodeType) {
-        el.appendChild(node)
-      }
+        assert.equal(typeof name === 'undefined' ? 'undefined' : _typeof(name), 'string', 'barracks.store.start.send: name should be a string');
+        assert.ok(!cb || typeof cb === 'function', 'barracks.store.start.send: cb should be a function');
+
+        var done = callOnError ? onErrorCallback : cb;
+        _send(name, data, selfName, done);
+
+        function onErrorCallback(err) {
+          err = err || null;
+          if (err) {
+            onError(err, _state, function createSend(selfName) {
+              return function send(name, data) {
+                assert.equal(typeof name === 'undefined' ? 'undefined' : _typeof(name), 'string', 'barracks.store.start.send: name should be a string');
+                data = typeof data === 'undefined' ? null : data;
+                _send(name, data, selfName, done);
+              };
+            });
+          }
+        }
+      };
+    }
+
+    // call an action
+    // (str, str, any, fn) -> null
+    function _send(name, data, caller, cb) {
+      assert.equal(typeof name === 'undefined' ? 'undefined' : _typeof(name), 'string', 'barracks._send: name should be a string');
+      assert.equal(typeof caller === 'undefined' ? 'undefined' : _typeof(caller), 'string', 'barracks._send: caller should be a string');
+      assert.equal(typeof cb === 'undefined' ? 'undefined' : _typeof(cb), 'function', 'barracks._send: cb should be a function');
+
+      setTimeout(function () {
+        var reducersCalled = false;
+        var effectsCalled = false;
+        var newState = xtend(_state);
+
+        if (onAction) onAction(data, _state, name, caller, createSend);
+
+        // validate if a namespace exists. Namespaces are delimited by ':'.
+        var actionName = name;
+        if (/:/.test(name)) {
+          var arr = name.split(':');
+          var ns = arr.shift();
+          actionName = arr.join(':');
+        }
+
+        var _reducers = ns ? reducers[ns] : reducers;
+        if (_reducers && _reducers[actionName]) {
+          if (ns) {
+            var reducedState = _reducers[actionName](data, _state[ns]);
+            mutate(newState[ns], xtend(_state[ns], reducedState));
+          } else {
+            mutate(newState, reducers[actionName](data, _state));
+          }
+          reducersCalled = true;
+          if (onStateChange) onStateChange(data, newState, _state, actionName, createSend);
+          _state = newState;
+          cb();
+        }
+
+        var _effects = ns ? effects[ns] : effects;
+        if (!reducersCalled && _effects && _effects[actionName]) {
+          var send = createSend('effect: ' + name);
+          if (ns) _effects[actionName](data, _state[ns], send, cb);else _effects[actionName](data, _state, send, cb);
+          effectsCalled = true;
+        }
+
+        if (!reducersCalled && !effectsCalled) {
+          throw new Error('Could not find action ' + actionName);
+        }
+      }, 0);
     }
   }
-  appendChild(children)
-
-  return el
 }
 
-module.exports = hyperx(belCreateElement)
-module.exports.createElement = belCreateElement
+// compose an object conditionally
+// optionally contains a namespace
+// which is used to nest properties.
+// (str, obj, obj, fn?) -> null
+function apply(ns, source, target, createSend, done) {
+  Object.keys(source).forEach(function (key) {
+    if (ns) {
+      if (!target[ns]) target[ns] = {};
+      target[ns][key] = source[key];
+    } else {
+      target[key] = source[key];
+    }
+    if (createSend && done) {
+      var send = createSend('subscription: ' + ns ? ns + ':' + key : key);
+      source[key](send, done);
+    }
+  });
+}
 
-},{"global/document":8,"hyperx":11}],5:[function(require,module,exports){
+// handle errors all the way at the top of the trace
+// err? -> null
+function defaultOnError(err) {
+  throw err;
+}
+
+function wrapOnError(onError) {
+  return function onErrorWrap(err) {
+    if (err) onError(err);
+  };
+}
+
+},{"assert":3,"xtend":25,"xtend/mutable":26}],5:[function(require,module,exports){
+"use strict";
 
 },{}],6:[function(require,module,exports){
+'use strict';
+
 // shim for using process in browser
 
 var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+(function () {
+    try {
+        cachedSetTimeout = setTimeout;
+    } catch (e) {
+        cachedSetTimeout = function cachedSetTimeout() {
+            throw new Error('setTimeout is not defined');
+        };
+    }
+    try {
+        cachedClearTimeout = clearTimeout;
+    } catch (e) {
+        cachedClearTimeout = function cachedClearTimeout() {
+            throw new Error('clearTimeout is not defined');
+        };
+    }
+})();
 var queue = [];
 var draining = false;
 var currentQueue;
@@ -641,11 +737,11 @@ function drainQueue() {
     if (draining) {
         return;
     }
-    var timeout = setTimeout(cleanUpNextTick);
+    var timeout = cachedSetTimeout(cleanUpNextTick);
     draining = true;
 
     var len = queue.length;
-    while(len) {
+    while (len) {
         currentQueue = queue;
         queue = [];
         while (++queueIndex < len) {
@@ -658,7 +754,7 @@ function drainQueue() {
     }
     currentQueue = null;
     draining = false;
-    clearTimeout(timeout);
+    cachedClearTimeout(timeout);
 }
 
 process.nextTick = function (fun) {
@@ -670,7 +766,7 @@ process.nextTick = function (fun) {
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining) {
-        setTimeout(drainQueue, 0);
+        cachedSetTimeout(drainQueue, 0);
     }
 };
 
@@ -703,169 +799,230 @@ process.binding = function (name) {
     throw new Error('process.binding is not supported');
 };
 
-process.cwd = function () { return '/' };
+process.cwd = function () {
+    return '/';
+};
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
-process.umask = function() { return 0; };
+process.umask = function () {
+    return 0;
+};
 
 },{}],7:[function(require,module,exports){
-const history = require('sheet-router/history')
-const sheetRouter = require('sheet-router')
-const document = require('global/document')
-const href = require('sheet-router/href')
-const sendAction = require('send-action')
-const xtend = require('xtend')
-const yo = require('yo-yo')
+'use strict';
 
-choo.view = yo
-module.exports = choo
+module.exports = require('yo-yo');
 
-// A framework for creating sturdy web applications
+},{"yo-yo":27}],8:[function(require,module,exports){
+'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var history = require('sheet-router/history');
+var sheetRouter = require('sheet-router');
+var document = require('global/document');
+var onReady = require('document-ready');
+var href = require('sheet-router/href');
+var hash = require('sheet-router/hash');
+var hashMatch = require('hash-match');
+var barracks = require('barracks');
+var nanoraf = require('nanoraf');
+var assert = require('assert');
+var xtend = require('xtend');
+var yo = require('yo-yo');
+
+module.exports = choo;
+
+// framework for creating sturdy web applications
 // null -> fn
-function choo (opts) {
-  opts = opts || {}
-  const name = opts.name || 'choo'
-  var _router = null
-  var _models = [ appInit(opts) ]
+function choo(opts) {
+  opts = opts || {};
 
-  start.router = router
-  start.model = model
-  start.start = start
+  var _store = start._store = barracks(xtend(opts, { onStateChange: render }));
+  var _router = start._router = null;
+  var _defaultRoute = null;
+  var _rootNode = null;
+  var _routes = null;
+  var _frame = null;
 
-  return start
+  start.toString = toString;
+  start.router = router;
+  start.model = model;
+  start.start = start;
 
-  // start the application
-  // null -> DOMNode
-  function start () {
-    const initialState = {}
-    const reducers = {}
-    const effects = {}
+  return start;
 
-    _models.forEach(function (model) {
-      if (model.state) apply(model.name, model.state, initialState)
-      if (model.reducers) apply(model.name, model.reducers, reducers)
-      if (model.effects) apply(model.name, model.effects, effects)
-    })
+  // render the application to a string
+  // (str, obj) -> str
+  function toString(route, serverState) {
+    serverState = serverState || {};
+    assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'choo.app.toString: route must be a string');
+    assert.equal(typeof serverState === 'undefined' ? 'undefined' : _typeof(serverState), 'object', 'choo.app.toString: serverState must be an object');
+    _store.start({ subscriptions: false, reducers: false, effects: false });
 
-    const send = sendAction({
-      onaction: handleAction,
-      onchange: onchange,
-      state: initialState
-    })
+    var state = _store.state({ state: serverState });
+    var router = createRouter(_defaultRoute, _routes, createSend);
+    var tree = router(route, state);
+    return tree.outerHTML || tree.toString();
 
-    _models.forEach(function (model) {
-      if (model.subscriptions) {
-        model.subscriptions.forEach(function (sub) {
-          sub(send)
-        })
-      }
-    })
-
-    const rootId = name + '-root'
-    const tree = _router(send.state().location, send.state(), send)
-    tree.setAttribute('id', rootId)
-    return tree
-
-    function handleAction (action, state, send) {
-      var _reducers = false
-      var _effects = false
-      var newState = null
-
-      if (reducers[action.type]) {
-        newState = xtend(state, reducers[action.type](action, state))
-        _reducers = true
-      }
-
-      if (effects[action.type]) {
-        effects[action.type](action, newState || state, send)
-        newState = newState || state
-        _effects = true
-      }
-
-      if (!_reducers && !_effects) {
-        throw new Error('Could not find action ' + action.type)
-      }
-
-      return newState
-    }
-
-    // update on every change
-    function onchange (action, state) {
-      const oldTree = document.querySelector('#' + rootId)
-      const newTree = _router(state.location, state, send)
-      newTree.setAttribute('id', rootId)
-      yo.update(oldTree, newTree)
+    function createSend() {
+      return function send() {
+        assert.fail('choo: send() cannot be called from Node');
+      };
     }
   }
 
-  // register all routes
-  // [obj|fn] -> null
-  function router (cb) {
-    _router = sheetRouter(cb)
-    return _router
+  // start the application
+  // (str?, obj?) -> DOMNode
+  function start(selector, startOpts) {
+    if (!startOpts && typeof selector !== 'string') {
+      startOpts = selector;
+      selector = null;
+    }
+    startOpts = startOpts || {};
+
+    _store.model(appInit(startOpts));
+    var createSend = _store.start(startOpts);
+    _router = start._router = createRouter(_defaultRoute, _routes, createSend);
+    var state = _store.state({ state: {} });
+
+    if (!selector) {
+      var tree = _router(state.location.pathname, state);
+      _rootNode = tree;
+      return tree;
+    } else {
+      onReady(function onReady() {
+        var oldTree = document.querySelector(selector);
+        assert.ok(oldTree, 'could not query selector: ' + selector);
+        var newTree = _router(state.location.pathname, state);
+        _rootNode = yo.update(oldTree, newTree);
+      });
+    }
+  }
+
+  // update the DOM after every state mutation
+  // (obj, obj, obj, str, fn) -> null
+  function render(data, state, prev, name, createSend) {
+    if (opts.onStateChange) {
+      opts.onStateChange(data, state, prev, name, createSend);
+    }
+
+    if (!_frame) {
+      _frame = nanoraf(function (state) {
+        var newTree = _router(state.location.pathname, state, prev);
+        _rootNode = yo.update(_rootNode, newTree);
+      });
+    }
+    _frame(state, prev);
+  }
+
+  // register all routes on the router
+  // (str?, [fn|[fn]]) -> obj
+  function router(defaultRoute, routes) {
+    _defaultRoute = defaultRoute;
+    _routes = routes;
   }
 
   // create a new model
   // (str?, obj) -> null
-  function model (name, model) {
-    if (!model) model = name
-    if (typeof name === 'string') model.name = name
-    _models.push(model)
+  function model(model) {
+    _store.model(model);
+  }
+
+  // create a new router with a custom `createRoute()` function
+  // (str?, obj, fn?) -> null
+  function createRouter(defaultRoute, routes, createSend) {
+    var prev = {};
+    return sheetRouter(defaultRoute, routes, createRoute);
+
+    function createRoute(routeFn) {
+      return function (route, inline, child) {
+        if (typeof inline === 'function') {
+          inline = wrap(inline, route);
+        }
+        return routeFn(route, inline, child);
+      };
+
+      function wrap(child, route) {
+        var send = createSend(route, true);
+        return function chooWrap(params, state) {
+          var nwPrev = prev;
+          var nwState = prev = xtend(state, { params: params });
+          if (opts.freeze !== false) Object.freeze(nwState);
+          return child(nwState, nwPrev, send);
+        };
+      }
+    }
   }
 }
 
 // initial application state model
 // obj -> obj
-function appInit (opts) {
-  const model = {
-    state: {
-      location: document.location.href
-    },
-    reducers: {
-      location: setLocation
-    },
-    subscriptions: []
+function appInit(opts) {
+  var loc = document.location;
+  var state = { pathname: opts.hash ? hashMatch(loc.hash) : loc.href };
+  var reducers = {
+    setLocation: function setLocation(data, state) {
+      return { pathname: data.location.replace(/#.*/, '') };
+    }
+  };
+  // if hash routing explicitly enabled, subscribe to it
+  var subs = {};
+  if (opts.hash === true) {
+    pushLocationSub(function (navigate) {
+      hash(function (fragment) {
+        navigate(hashMatch(fragment));
+      });
+    }, 'handleHash', subs);
+  } else {
+    if (opts.history !== false) pushLocationSub(history, 'handleHistory', subs);
+    if (opts.href !== false) pushLocationSub(href, 'handleHref', subs);
   }
 
-  if (opts.href !== false) {
-    model.subscriptions.push(function (send) {
-      href(function (href) {
-        send('location', { location: href })
-      })
-    })
-  }
+  return {
+    namespace: 'location',
+    subscriptions: subs,
+    reducers: reducers,
+    state: state
+  };
 
-  if (opts.history !== false) {
-    model.subscriptions.push(function (send) {
-      history(function (href) {
-        send('location', { location: href })
-      })
-    })
-  }
-
-  return model
-
-  // handle href links
-  function setLocation (action, state) {
-    const location = action.location.replace(/#.*/, '')
-    return xtend(state, { location: location })
+  // create a new subscription that modifies
+  // 'app:location' and push it to be loaded
+  // (fn, obj) -> null
+  function pushLocationSub(cb, key, model) {
+    model[key] = function (send, done) {
+      cb(function navigate(pathname) {
+        send('location:setLocation', { location: pathname }, done);
+      });
+    };
   }
 }
 
-// compose an object conditionally
-// (str, obj, obj) -> null
-function apply (name, source, target) {
-  Object.keys(source).forEach(function (key) {
-    if (name) target[name + ':' + key] = source[key]
-    else target[key] = source[key]
-  })
+},{"assert":3,"barracks":4,"document-ready":9,"global/document":10,"hash-match":12,"nanoraf":15,"sheet-router":20,"sheet-router/hash":17,"sheet-router/history":18,"sheet-router/href":19,"xtend":25,"yo-yo":27}],9:[function(require,module,exports){
+'use strict';
+
+var document = require('global/document');
+
+module.exports = document.addEventListener ? ready : noop;
+
+function ready(callback) {
+  if (document.readyState === 'complete') {
+    return setTimeout(callback, 0);
+  }
+
+  document.addEventListener('DOMContentLoaded', function onLoad() {
+    callback();
+  });
 }
 
-},{"global/document":8,"send-action":15,"sheet-router":18,"sheet-router/history":16,"sheet-router/href":17,"xtend":24,"yo-yo":26}],8:[function(require,module,exports){
+function noop() {}
+
+},{"global/document":10}],10:[function(require,module,exports){
 (function (global){
-var topLevel = typeof global !== 'undefined' ? global :
-    typeof window !== 'undefined' ? window : {}
+'use strict';
+
+var topLevel = typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : {};
 var minDoc = require('min-document');
 
 if (typeof document !== 'undefined') {
@@ -881,310 +1038,40 @@ if (typeof document !== 'undefined') {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"min-document":5}],9:[function(require,module,exports){
+},{"min-document":5}],11:[function(require,module,exports){
 (function (global){
+"use strict";
+
 if (typeof window !== "undefined") {
     module.exports = window;
 } else if (typeof global !== "undefined") {
     module.exports = global;
-} else if (typeof self !== "undefined"){
+} else if (typeof self !== "undefined") {
     module.exports = self;
 } else {
     module.exports = {};
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],10:[function(require,module,exports){
-module.exports = attributeToProperty
+},{}],12:[function(require,module,exports){
+'use strict';
 
-var transform = {
-  'class': 'className',
-  'for': 'htmlFor',
-  'http-equiv': 'httpEquiv'
-}
+module.exports = function hashMatch(hash, prefix) {
+  var pre = prefix || '/';
+  if (hash.length === 0) return pre;
+  hash = hash.replace('#', '');
+  hash = hash.replace(/\/$/, '');
+  if (hash.indexOf('/') != 0) hash = '/' + hash;
+  if (pre == '/') return hash;else return hash.replace(pre, '');
+};
 
-function attributeToProperty (h) {
-  return function (tagName, attrs, children) {
-    for (var attr in attrs) {
-      if (attr in transform) {
-        attrs[transform[attr]] = attrs[attr]
-        delete attrs[attr]
-      }
-    }
-    return h(tagName, attrs, children)
-  }
-}
+},{}],13:[function(require,module,exports){
+'use strict';
 
-},{}],11:[function(require,module,exports){
-var attrToProp = require('hyperscript-attribute-to-property')
-
-var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
-var ATTR_KEY = 5, ATTR_KEY_W = 6
-var ATTR_VALUE_W = 7, ATTR_VALUE = 8
-var ATTR_VALUE_SQ = 9, ATTR_VALUE_DQ = 10
-var ATTR_EQ = 11, ATTR_BREAK = 12
-
-module.exports = function (h, opts) {
-  h = attrToProp(h)
-  if (!opts) opts = {}
-  var concat = opts.concat || function (a, b) {
-    return String(a) + String(b)
-  }
-
-  return function (strings) {
-    var state = TEXT, reg = ''
-    var arglen = arguments.length
-    var parts = []
-
-    for (var i = 0; i < strings.length; i++) {
-      if (i < arglen - 1) {
-        var arg = arguments[i+1]
-        var p = parse(strings[i])
-        var xstate = state
-        if (xstate === ATTR_VALUE_DQ) xstate = ATTR_VALUE
-        if (xstate === ATTR_VALUE_SQ) xstate = ATTR_VALUE
-        if (xstate === ATTR_VALUE_W) xstate = ATTR_VALUE
-        if (xstate === ATTR) xstate = ATTR_KEY
-        p.push([ VAR, xstate, arg ])
-        parts.push.apply(parts, p)
-      } else parts.push.apply(parts, parse(strings[i]))
-    }
-
-    var tree = [null,{},[]]
-    var stack = [[tree,-1]]
-    for (var i = 0; i < parts.length; i++) {
-      var cur = stack[stack.length-1][0]
-      var p = parts[i], s = p[0]
-      if (s === OPEN && /^\//.test(p[1])) {
-        var ix = stack[stack.length-1][1]
-        if (stack.length > 1) {
-          stack.pop()
-          stack[stack.length-1][0][2][ix] = h(
-            cur[0], cur[1], cur[2].length ? cur[2] : undefined
-          )
-        }
-      } else if (s === OPEN) {
-        var c = [p[1],{},[]]
-        cur[2].push(c)
-        stack.push([c,cur[2].length-1])
-      } else if (s === ATTR_KEY || (s === VAR && p[1] === ATTR_KEY)) {
-        var key = ''
-        var copyKey
-        for (; i < parts.length; i++) {
-          if (parts[i][0] === ATTR_KEY) {
-            key = concat(key, parts[i][1])
-          } else if (parts[i][0] === VAR && parts[i][1] === ATTR_KEY) {
-            if (typeof parts[i][2] === 'object' && !key) {
-              for (copyKey in parts[i][2]) {
-                if (parts[i][2].hasOwnProperty(copyKey) && !cur[1][copyKey]) {
-                  cur[1][copyKey] = parts[i][2][copyKey]
-                }
-              }
-            } else {
-              key = concat(key, parts[i][2])
-            }
-          } else break
-        }
-        if (parts[i][0] === ATTR_EQ) i++
-        var j = i
-        for (; i < parts.length; i++) {
-          if (parts[i][0] === ATTR_VALUE || parts[i][0] === ATTR_KEY) {
-            if (!cur[1][key]) cur[1][key] = strfn(parts[i][1])
-            else cur[1][key] = concat(cur[1][key], parts[i][1])
-          } else if (parts[i][0] === VAR
-          && (parts[i][1] === ATTR_VALUE || parts[i][1] === ATTR_KEY)) {
-            if (!cur[1][key]) cur[1][key] = strfn(parts[i][2])
-            else cur[1][key] = concat(cur[1][key], parts[i][2])
-          } else {
-            if (key.length && !cur[1][key] && i === j
-            && (parts[i][0] === CLOSE || parts[i][0] === ATTR_BREAK)) {
-              // https://html.spec.whatwg.org/multipage/infrastructure.html#boolean-attributes
-              // empty string is falsy, not well behaved value in browser
-              cur[1][key] = key.toLowerCase()
-            }
-            break
-          }
-        }
-      } else if (s === ATTR_KEY) {
-        cur[1][p[1]] = true
-      } else if (s === VAR && p[1] === ATTR_KEY) {
-        cur[1][p[2]] = true
-      } else if (s === CLOSE) {
-        if (selfClosing(cur[0]) && stack.length) {
-          var ix = stack[stack.length-1][1]
-          stack.pop()
-          stack[stack.length-1][0][2][ix] = h(
-            cur[0], cur[1], cur[2].length ? cur[2] : undefined
-          )
-        }
-      } else if (s === VAR && p[1] === TEXT) {
-        if (p[2] === undefined || p[2] === null) p[2] = ''
-        else if (!p[2]) p[2] = concat('', p[2])
-        if (Array.isArray(p[2][0])) {
-          cur[2].push.apply(cur[2], p[2])
-        } else {
-          cur[2].push(p[2])
-        }
-      } else if (s === TEXT) {
-        cur[2].push(p[1])
-      } else if (s === ATTR_EQ || s === ATTR_BREAK) {
-        // no-op
-      } else {
-        throw new Error('unhandled: ' + s)
-      }
-    }
-
-    if (tree[2].length > 1 && /^\s*$/.test(tree[2][0])) {
-      tree[2].shift()
-    }
-
-    if (tree[2].length > 2
-    || (tree[2].length === 2 && /\S/.test(tree[2][1]))) {
-      throw new Error(
-        'multiple root elements must be wrapped in an enclosing tag'
-      )
-    }
-    if (Array.isArray(tree[2][0]) && typeof tree[2][0][0] === 'string'
-    && Array.isArray(tree[2][0][2])) {
-      tree[2][0] = h(tree[2][0][0], tree[2][0][1], tree[2][0][2])
-    }
-    return tree[2][0]
-
-    function parse (str) {
-      var res = []
-      if (state === ATTR_VALUE_W) state = ATTR
-      for (var i = 0; i < str.length; i++) {
-        var c = str.charAt(i)
-        if (state === TEXT && c === '<') {
-          if (reg.length) res.push([TEXT, reg])
-          reg = ''
-          state = OPEN
-        } else if (c === '>' && !quot(state)) {
-          if (state === OPEN) {
-            res.push([OPEN,reg])
-          } else if (state === ATTR_KEY) {
-            res.push([ATTR_KEY,reg])
-          } else if (state === ATTR_VALUE && reg.length) {
-            res.push([ATTR_VALUE,reg])
-          }
-          res.push([CLOSE])
-          reg = ''
-          state = TEXT
-        } else if (state === TEXT) {
-          reg += c
-        } else if (state === OPEN && /\s/.test(c)) {
-          res.push([OPEN, reg])
-          reg = ''
-          state = ATTR
-        } else if (state === OPEN) {
-          reg += c
-        } else if (state === ATTR && /[\w-]/.test(c)) {
-          state = ATTR_KEY
-          reg = c
-        } else if (state === ATTR && /\s/.test(c)) {
-          if (reg.length) res.push([ATTR_KEY,reg])
-          res.push([ATTR_BREAK])
-        } else if (state === ATTR_KEY && /\s/.test(c)) {
-          res.push([ATTR_KEY,reg])
-          reg = ''
-          state = ATTR_KEY_W
-        } else if (state === ATTR_KEY && c === '=') {
-          res.push([ATTR_KEY,reg],[ATTR_EQ])
-          reg = ''
-          state = ATTR_VALUE_W
-        } else if (state === ATTR_KEY) {
-          reg += c
-        } else if ((state === ATTR_KEY_W || state === ATTR) && c === '=') {
-          res.push([ATTR_EQ])
-          state = ATTR_VALUE_W
-        } else if ((state === ATTR_KEY_W || state === ATTR) && !/\s/.test(c)) {
-          res.push([ATTR_BREAK])
-          if (/[\w-]/.test(c)) {
-            reg += c
-            state = ATTR_KEY
-          } else state = ATTR
-        } else if (state === ATTR_VALUE_W && c === '"') {
-          state = ATTR_VALUE_DQ
-        } else if (state === ATTR_VALUE_W && c === "'") {
-          state = ATTR_VALUE_SQ
-        } else if (state === ATTR_VALUE_DQ && c === '"') {
-          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE_SQ && c === "'") {
-          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE_W && !/\s/.test(c)) {
-          state = ATTR_VALUE
-          i--
-        } else if (state === ATTR_VALUE && /\s/.test(c)) {
-          res.push([ATTR_BREAK],[ATTR_VALUE,reg])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE || state === ATTR_VALUE_SQ
-        || state === ATTR_VALUE_DQ) {
-          reg += c
-        }
-      }
-      if (state === TEXT && reg.length) {
-        res.push([TEXT,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE_DQ && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE_SQ && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_KEY) {
-        res.push([ATTR_KEY,reg])
-        reg = ''
-      }
-      return res
-    }
-  }
-
-  function strfn (x) {
-    if (typeof x === 'function') return x
-    else if (typeof x === 'string') return x
-    else if (x && typeof x === 'object') return x
-    else return concat('', x)
-  }
-}
-
-function quot (state) {
-  return state === ATTR_VALUE_SQ || state === ATTR_VALUE_DQ
-}
-
-var hasOwn = Object.prototype.hasOwnProperty
-function has (obj, key) { return hasOwn.call(obj, key) }
-
-var closeRE = RegExp('^(' + [
-  'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'command', 'embed',
-  'frame', 'hr', 'img', 'input', 'isindex', 'keygen', 'link', 'meta', 'param',
-  'source', 'track', 'wbr',
-  // SVG TAGS
-  'animate', 'animateTransform', 'circle', 'cursor', 'desc', 'ellipse',
-  'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite',
-  'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap',
-  'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR',
-  'feGaussianBlur', 'feImage', 'feMergeNode', 'feMorphology',
-  'feOffset', 'fePointLight', 'feSpecularLighting', 'feSpotLight', 'feTile',
-  'feTurbulence', 'font-face-format', 'font-face-name', 'font-face-uri',
-  'glyph', 'glyphRef', 'hkern', 'image', 'line', 'missing-glyph', 'mpath',
-  'path', 'polygon', 'polyline', 'rect', 'set', 'stop', 'tref', 'use', 'view',
-  'vkern'
-].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
-function selfClosing (tag) { return closeRE.test(tag) }
-
-},{"hyperscript-attribute-to-property":10}],12:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
+    ctor.super_ = superCtor;
     ctor.prototype = Object.create(superCtor.prototype, {
       constructor: {
         value: ctor,
@@ -1197,30 +1084,42 @@ if (typeof Object.create === 'function') {
 } else {
   // old school shim for old browsers
   module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
+    ctor.super_ = superCtor;
+    var TempCtor = function TempCtor() {};
+    TempCtor.prototype = superCtor.prototype;
+    ctor.prototype = new TempCtor();
+    ctor.prototype.constructor = ctor;
+  };
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+'use strict';
+
 // Create a range object for efficently rendering strings to elements.
 var range;
 
 var testEl = typeof document !== 'undefined' ? document.body || document.createElement('div') : {};
 
-// Fixes https://github.com/patrick-steele-idem/morphdom/issues/32 (IE7+ support)
-// <=IE7 does not support el.hasAttribute(name)
-var hasAttribute;
-if (testEl.hasAttribute) {
-    hasAttribute = function hasAttribute(el, name) {
+var XHTML = 'http://www.w3.org/1999/xhtml';
+var ELEMENT_NODE = 1;
+var TEXT_NODE = 3;
+var COMMENT_NODE = 8;
+
+// Fixes <https://github.com/patrick-steele-idem/morphdom/issues/32>
+// (IE7+ support) <=IE7 does not support el.hasAttribute(name)
+var hasAttributeNS;
+
+if (testEl.hasAttributeNS) {
+    hasAttributeNS = function hasAttributeNS(el, namespaceURI, name) {
+        return el.hasAttributeNS(namespaceURI, name);
+    };
+} else if (testEl.hasAttribute) {
+    hasAttributeNS = function hasAttributeNS(el, namespaceURI, name) {
         return el.hasAttribute(name);
     };
 } else {
-    hasAttribute = function hasAttribute(el, name) {
-        return el.getAttributeNode(name);
+    hasAttributeNS = function hasAttributeNS(el, namespaceURI, name) {
+        return !!el.getAttributeNode(name);
     };
 }
 
@@ -1230,9 +1129,9 @@ function empty(o) {
             return false;
         }
     }
-
     return true;
 }
+
 function toElement(str) {
     if (!range && document.createRange) {
         range = document.createRange();
@@ -1251,43 +1150,50 @@ function toElement(str) {
 
 var specialElHandlers = {
     /**
-     * Needed for IE. Apparently IE doesn't think
-     * that "selected" is an attribute when reading
-     * over the attributes using selectEl.attributes
+     * Needed for IE. Apparently IE doesn't think that "selected" is an
+     * attribute when reading over the attributes using selectEl.attributes
      */
-    OPTION: function(fromEl, toEl) {
-        if ((fromEl.selected = toEl.selected)) {
+    OPTION: function OPTION(fromEl, toEl) {
+        fromEl.selected = toEl.selected;
+        if (fromEl.selected) {
             fromEl.setAttribute('selected', '');
         } else {
             fromEl.removeAttribute('selected', '');
         }
     },
     /**
-     * The "value" attribute is special for the <input> element
-     * since it sets the initial value. Changing the "value"
-     * attribute without changing the "value" property will have
-     * no effect since it is only used to the set the initial value.
-     * Similar for the "checked" attribute.
+     * The "value" attribute is special for the <input> element since it sets
+     * the initial value. Changing the "value" attribute without changing the
+     * "value" property will have no effect since it is only used to the set the
+     * initial value.  Similar for the "checked" attribute, and "disabled".
      */
-    INPUT: function(fromEl, toEl) {
+    INPUT: function INPUT(fromEl, toEl) {
         fromEl.checked = toEl.checked;
-
-        if (fromEl.value != toEl.value) {
-            fromEl.value = toEl.value;
-        }
-
-        if (!hasAttribute(toEl, 'checked')) {
+        if (fromEl.checked) {
+            fromEl.setAttribute('checked', '');
+        } else {
             fromEl.removeAttribute('checked');
         }
 
-        if (!hasAttribute(toEl, 'value')) {
+        if (fromEl.value !== toEl.value) {
+            fromEl.value = toEl.value;
+        }
+
+        if (!hasAttributeNS(toEl, null, 'value')) {
             fromEl.removeAttribute('value');
+        }
+
+        fromEl.disabled = toEl.disabled;
+        if (fromEl.disabled) {
+            fromEl.setAttribute('disabled', '');
+        } else {
+            fromEl.removeAttribute('disabled');
         }
     },
 
-    TEXTAREA: function(fromEl, toEl) {
+    TEXTAREA: function TEXTAREA(fromEl, toEl) {
         var newValue = toEl.value;
-        if (fromEl.value != newValue) {
+        if (fromEl.value !== newValue) {
             fromEl.value = newValue;
         }
 
@@ -1300,44 +1206,80 @@ var specialElHandlers = {
 function noop() {}
 
 /**
- * Loop over all of the attributes on the target node and make sure the
- * original DOM node has the same attributes. If an attribute
- * found on the original node is not on the new node then remove it from
- * the original node
- * @param  {HTMLElement} fromNode
- * @param  {HTMLElement} toNode
+ * Returns true if two node's names and namespace URIs are the same.
+ *
+ * @param {Element} a
+ * @param {Element} b
+ * @return {boolean}
+ */
+var compareNodeNames = function compareNodeNames(a, b) {
+    return a.nodeName === b.nodeName && a.namespaceURI === b.namespaceURI;
+};
+
+/**
+ * Create an element, optionally with a known namespace URI.
+ *
+ * @param {string} name the element name, e.g. 'div' or 'svg'
+ * @param {string} [namespaceURI] the element's namespace URI, i.e. the value of
+ * its `xmlns` attribute or its inferred namespace.
+ *
+ * @return {Element}
+ */
+function createElementNS(name, namespaceURI) {
+    return !namespaceURI || namespaceURI === XHTML ? document.createElement(name) : document.createElementNS(namespaceURI, name);
+}
+
+/**
+ * Loop over all of the attributes on the target node and make sure the original
+ * DOM node has the same attributes. If an attribute found on the original node
+ * is not on the new node then remove it from the original node.
+ *
+ * @param  {Element} fromNode
+ * @param  {Element} toNode
  */
 function morphAttrs(fromNode, toNode) {
     var attrs = toNode.attributes;
     var i;
     var attr;
     var attrName;
+    var attrNamespaceURI;
     var attrValue;
-    var foundAttrs = {};
+    var fromValue;
 
-    for (i=attrs.length-1; i>=0; i--) {
+    for (i = attrs.length - 1; i >= 0; i--) {
         attr = attrs[i];
-        if (attr.specified !== false) {
-            attrName = attr.name;
-            attrValue = attr.value;
-            foundAttrs[attrName] = true;
+        attrName = attr.name;
+        attrValue = attr.value;
+        attrNamespaceURI = attr.namespaceURI;
 
-            if (fromNode.getAttribute(attrName) !== attrValue) {
+        if (attrNamespaceURI) {
+            attrName = attr.localName || attrName;
+            fromValue = fromNode.getAttributeNS(attrNamespaceURI, attrName);
+        } else {
+            fromValue = fromNode.getAttribute(attrName);
+        }
+
+        if (fromValue !== attrValue) {
+            if (attrNamespaceURI) {
+                fromNode.setAttributeNS(attrNamespaceURI, attrName, attrValue);
+            } else {
                 fromNode.setAttribute(attrName, attrValue);
             }
         }
     }
 
-    // Delete any extra attributes found on the original DOM element that weren't
-    // found on the target element.
+    // Remove any extra attributes found on the original DOM element that
+    // weren't found on the target element.
     attrs = fromNode.attributes;
 
-    for (i=attrs.length-1; i>=0; i--) {
+    for (i = attrs.length - 1; i >= 0; i--) {
         attr = attrs[i];
         if (attr.specified !== false) {
             attrName = attr.name;
-            if (!foundAttrs.hasOwnProperty(attrName)) {
-                fromNode.removeAttribute(attrName);
+            attrNamespaceURI = attr.namespaceURI;
+
+            if (!hasAttributeNS(toNode, attrNamespaceURI, attrNamespaceURI ? attrName = attr.localName || attrName : attrName)) {
+                fromNode.removeAttributeNode(attr);
             }
         }
     }
@@ -1348,7 +1290,7 @@ function morphAttrs(fromNode, toNode) {
  */
 function moveChildren(fromEl, toEl) {
     var curChild = fromEl.firstChild;
-    while(curChild) {
+    while (curChild) {
         var nextChild = curChild.nextSibling;
         toEl.appendChild(curChild);
         curChild = nextChild;
@@ -1374,6 +1316,13 @@ function morphdom(fromNode, toNode, options) {
             toNode = toElement(toNode);
         }
     }
+
+    // XXX optimization: if the nodes are equal, don't morph them
+    /*
+    if (fromNode.isEqualNode(toNode)) {
+      return fromNode;
+    }
+    */
 
     var savedEls = {}; // Used to save off DOM elements with IDs
     var unmatchedEls = {};
@@ -1401,9 +1350,9 @@ function morphdom(fromNode, toNode, options) {
             onNodeDiscarded(node);
         }
 
-        if (node.nodeType === 1) {
+        if (node.nodeType === ELEMENT_NODE) {
             var curChild = node.firstChild;
-            while(curChild) {
+            while (curChild) {
                 removeNodeHelper(curChild, nestedInSavedEl || id);
                 curChild = curChild.nextSibling;
             }
@@ -1411,10 +1360,9 @@ function morphdom(fromNode, toNode, options) {
     }
 
     function walkDiscardedChildNodes(node) {
-        if (node.nodeType === 1) {
+        if (node.nodeType === ELEMENT_NODE) {
             var curChild = node.firstChild;
-            while(curChild) {
-
+            while (curChild) {
 
                 if (!getNodeKey(curChild)) {
                     // We only want to handle nodes that don't have an ID to avoid double
@@ -1468,7 +1416,7 @@ function morphdom(fromNode, toNode, options) {
             }
         }
 
-        if (fromEl.tagName != 'TEXTAREA') {
+        if (fromEl.nodeName !== 'TEXTAREA') {
             var curToNodeChild = toEl.firstChild;
             var curFromNodeChild = fromEl.firstChild;
             var curToNodeId;
@@ -1478,11 +1426,11 @@ function morphdom(fromNode, toNode, options) {
             var savedEl;
             var unmatchedEl;
 
-            outer: while(curToNodeChild) {
+            outer: while (curToNodeChild) {
                 toNextSibling = curToNodeChild.nextSibling;
                 curToNodeId = getNodeKey(curToNodeChild);
 
-                while(curFromNodeChild) {
+                while (curFromNodeChild) {
                     var curFromNodeId = getNodeKey(curFromNodeChild);
                     fromNextSibling = curFromNodeChild.nextSibling;
 
@@ -1500,13 +1448,14 @@ function morphdom(fromNode, toNode, options) {
                     if (curFromNodeType === curToNodeChild.nodeType) {
                         var isCompatible = false;
 
-                        if (curFromNodeType === 1) { // Both nodes being compared are Element nodes
-                            if (curFromNodeChild.tagName === curToNodeChild.tagName) {
+                        // Both nodes being compared are Element nodes
+                        if (curFromNodeType === ELEMENT_NODE) {
+                            if (compareNodeNames(curFromNodeChild, curToNodeChild)) {
                                 // We have compatible DOM elements
                                 if (curFromNodeId || curToNodeId) {
-                                    // If either DOM element has an ID then we handle
-                                    // those differently since we want to match up
-                                    // by ID
+                                    // If either DOM element has an ID then we
+                                    // handle those differently since we want to
+                                    // match up by ID
                                     if (curToNodeId === curFromNodeId) {
                                         isCompatible = true;
                                     }
@@ -1516,13 +1465,16 @@ function morphdom(fromNode, toNode, options) {
                             }
 
                             if (isCompatible) {
-                                // We found compatible DOM elements so transform the current "from" node
-                                // to match the current target DOM node.
+                                // We found compatible DOM elements so transform
+                                // the current "from" node to match the current
+                                // target DOM node.
                                 morphEl(curFromNodeChild, curToNodeChild, alreadyVisited);
                             }
-                        } else if (curFromNodeType === 3) { // Both nodes being compared are Text nodes
+                            // Both nodes being compared are Text or Comment nodes
+                        } else if (curFromNodeType === TEXT_NODE || curFromNodeType == COMMENT_NODE) {
                             isCompatible = true;
-                            // Simply update nodeValue on the original node to change the text value
+                            // Simply update nodeValue on the original node to
+                            // change the text value
                             curFromNodeChild.nodeValue = curToNodeChild.nodeValue;
                         }
 
@@ -1533,41 +1485,50 @@ function morphdom(fromNode, toNode, options) {
                         }
                     }
 
-                    // No compatible match so remove the old node from the DOM and continue trying
-                    // to find a match in the original DOM
+                    // No compatible match so remove the old node from the DOM
+                    // and continue trying to find a match in the original DOM
                     removeNode(curFromNodeChild, fromEl, alreadyVisited);
                     curFromNodeChild = fromNextSibling;
                 }
 
                 if (curToNodeId) {
-                    if ((savedEl = savedEls[curToNodeId])) {
-                        morphEl(savedEl, curToNodeChild, true);
-                        curToNodeChild = savedEl; // We want to append the saved element instead
+                    if (savedEl = savedEls[curToNodeId]) {
+                        if (compareNodeNames(savedEl, curToNodeChild)) {
+                            morphEl(savedEl, curToNodeChild, true);
+                            // We want to append the saved element instead
+                            curToNodeChild = savedEl;
+                        } else {
+                            delete savedEls[curToNodeId];
+                            onNodeDiscarded(savedEl);
+                        }
                     } else {
                         // The current DOM element in the target tree has an ID
-                        // but we did not find a match in any of the corresponding
-                        // siblings. We just put the target element in the old DOM tree
-                        // but if we later find an element in the old DOM tree that has
-                        // a matching ID then we will replace the target element
-                        // with the corresponding old element and morph the old element
+                        // but we did not find a match in any of the
+                        // corresponding siblings. We just put the target
+                        // element in the old DOM tree but if we later find an
+                        // element in the old DOM tree that has a matching ID
+                        // then we will replace the target element with the
+                        // corresponding old element and morph the old element
                         unmatchedEls[curToNodeId] = curToNodeChild;
                     }
                 }
 
-                // If we got this far then we did not find a candidate match for our "to node"
-                // and we exhausted all of the children "from" nodes. Therefore, we will just
-                // append the current "to node" to the end
+                // If we got this far then we did not find a candidate match for
+                // our "to node" and we exhausted all of the children "from"
+                // nodes. Therefore, we will just append the current "to node"
+                // to the end
                 if (onBeforeNodeAdded(curToNodeChild) !== false) {
                     fromEl.appendChild(curToNodeChild);
                     onNodeAdded(curToNodeChild);
                 }
 
-                if (curToNodeChild.nodeType === 1 && (curToNodeId || curToNodeChild.firstChild)) {
-                    // The element that was just added to the original DOM may have
-                    // some nested elements with a key/ID that needs to be matched up
-                    // with other elements. We'll add the element to a list so that we
-                    // can later process the nested elements if there are any unmatched
-                    // keyed elements that were discarded
+                if (curToNodeChild.nodeType === ELEMENT_NODE && (curToNodeId || curToNodeChild.firstChild)) {
+                    // The element that was just added to the original DOM may
+                    // have some nested elements with a key/ID that needs to be
+                    // matched up with other elements. We'll add the element to
+                    // a list so that we can later process the nested elements
+                    // if there are any unmatched keyed elements that were
+                    // discarded
                     movedEls.push(curToNodeChild);
                 }
 
@@ -1575,16 +1536,17 @@ function morphdom(fromNode, toNode, options) {
                 curFromNodeChild = fromNextSibling;
             }
 
-            // We have processed all of the "to nodes". If curFromNodeChild is non-null then
-            // we still have some from nodes left over that need to be removed
-            while(curFromNodeChild) {
+            // We have processed all of the "to nodes". If curFromNodeChild is
+            // non-null then we still have some from nodes left over that need
+            // to be removed
+            while (curFromNodeChild) {
                 fromNextSibling = curFromNodeChild.nextSibling;
                 removeNode(curFromNodeChild, fromEl, alreadyVisited);
                 curFromNodeChild = fromNextSibling;
             }
         }
 
-        var specialElHandler = specialElHandlers[fromEl.tagName];
+        var specialElHandler = specialElHandlers[fromEl.nodeName];
         if (specialElHandler) {
             specialElHandler(fromEl, toEl);
         }
@@ -1597,18 +1559,19 @@ function morphdom(fromNode, toNode, options) {
     if (!childrenOnly) {
         // Handle the case where we are given two DOM nodes that are not
         // compatible (e.g. <div> --> <span> or <div> --> TEXT)
-        if (morphedNodeType === 1) {
-            if (toNodeType === 1) {
-                if (fromNode.tagName !== toNode.tagName) {
+        if (morphedNodeType === ELEMENT_NODE) {
+            if (toNodeType === ELEMENT_NODE) {
+                if (!compareNodeNames(fromNode, toNode)) {
                     onNodeDiscarded(fromNode);
-                    morphedNode = moveChildren(fromNode, document.createElement(toNode.tagName));
+                    morphedNode = moveChildren(fromNode, createElementNS(toNode.nodeName, toNode.namespaceURI));
                 }
             } else {
                 // Going from an element node to a text node
                 morphedNode = toNode;
             }
-        } else if (morphedNodeType === 3) { // Text node
-            if (toNodeType === 3) {
+        } else if (morphedNodeType === TEXT_NODE || morphedNodeType === COMMENT_NODE) {
+            // Text or comment node
+            if (toNodeType === morphedNodeType) {
                 morphedNode.nodeValue = toNode.nodeValue;
                 return morphedNode;
             } else {
@@ -1619,31 +1582,31 @@ function morphdom(fromNode, toNode, options) {
     }
 
     if (morphedNode === toNode) {
-        // The "to node" was not compatible with the "from node"
-        // so we had to toss out the "from node" and use the "to node"
+        // The "to node" was not compatible with the "from node" so we had to
+        // toss out the "from node" and use the "to node"
         onNodeDiscarded(fromNode);
     } else {
         morphEl(morphedNode, toNode, false, childrenOnly);
 
         /**
-         * What we will do here is walk the tree for the DOM element
-         * that was moved from the target DOM tree to the original
-         * DOM tree and we will look for keyed elements that could
-         * be matched to keyed elements that were earlier discarded.
-         * If we find a match then we will move the saved element
-         * into the final DOM tree
+         * What we will do here is walk the tree for the DOM element that was
+         * moved from the target DOM tree to the original DOM tree and we will
+         * look for keyed elements that could be matched to keyed elements that
+         * were earlier discarded.  If we find a match then we will move the
+         * saved element into the final DOM tree.
          */
-        var handleMovedEl = function(el) {
+        var handleMovedEl = function handleMovedEl(el) {
             var curChild = el.firstChild;
-            while(curChild) {
+            while (curChild) {
                 var nextSibling = curChild.nextSibling;
 
                 var key = getNodeKey(curChild);
                 if (key) {
                     var savedEl = savedEls[key];
-                    if (savedEl && (curChild.tagName === savedEl.tagName)) {
+                    if (savedEl && compareNodeNames(curChild, savedEl)) {
                         curChild.parentNode.replaceChild(savedEl, curChild);
-                        morphEl(savedEl, curChild, true /* already visited the saved el tree */);
+                        // true: already visited the saved el tree
+                        morphEl(savedEl, curChild, true);
                         curChild = nextSibling;
                         if (empty(savedEls)) {
                             return false;
@@ -1652,7 +1615,7 @@ function morphdom(fromNode, toNode, options) {
                     }
                 }
 
-                if (curChild.nodeType === 1) {
+                if (curChild.nodeType === ELEMENT_NODE) {
                     handleMovedEl(curChild);
                 }
 
@@ -1665,11 +1628,10 @@ function morphdom(fromNode, toNode, options) {
         // target tree that were moved over without visiting their
         // children
         if (!empty(savedEls)) {
-            handleMovedElsLoop:
-            while (movedEls.length) {
+            handleMovedElsLoop: while (movedEls.length) {
                 var movedElsTemp = movedEls;
                 movedEls = [];
-                for (var i=0; i<movedElsTemp.length; i++) {
+                for (var i = 0; i < movedElsTemp.length; i++) {
                     if (handleMovedEl(movedElsTemp[i]) === false) {
                         // There are no more unmatched elements so completely end
                         // the loop
@@ -1704,225 +1666,240 @@ function morphdom(fromNode, toNode, options) {
 
 module.exports = morphdom;
 
-},{}],14:[function(require,module,exports){
-const assert = require('assert')
+},{}],15:[function(require,module,exports){
+'use strict';
 
-module.exports = match
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var window = require('global/window');
+var assert = require('assert');
+
+module.exports = nanoraf;
+
+// Only call RAF when needed
+// (fn, fn?) -> fn
+function nanoraf(render, raf) {
+  assert.equal(typeof render === 'undefined' ? 'undefined' : _typeof(render), 'function', 'nanoraf: render should be a function');
+  assert.ok(typeof raf === 'function' || typeof raf === 'undefined', 'nanoraf: raf should be a function or undefined');
+
+  if (!raf) {
+    raf = window.requestAnimationFrame;
+  }
+
+  var inRenderingTransaction = false;
+  var redrawScheduled = false;
+  var currentState = null;
+
+  // pass new state to be rendered
+  // (obj, obj?) -> null
+  return function frame(state, prev) {
+    assert.equal(typeof state === 'undefined' ? 'undefined' : _typeof(state), 'object', 'nanoraf: state should be an object');
+    assert.equal(typeof prev === 'undefined' ? 'undefined' : _typeof(prev), 'object', 'nanoraf: prev should be an object');
+    assert.ifError(inRenderingTransaction, 'nanoraf: infinite loop detected');
+
+    // request a redraw for next frame
+    if (currentState === null && !redrawScheduled) {
+      redrawScheduled = true;
+
+      raf(function redraw() {
+        redrawScheduled = false;
+        if (!currentState) return;
+
+        inRenderingTransaction = true;
+        render(currentState, prev);
+        inRenderingTransaction = false;
+
+        currentState = null;
+      });
+    }
+
+    // update data for redraw
+    currentState = state;
+  };
+}
+
+},{"assert":3,"global/window":11}],16:[function(require,module,exports){
+'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var assert = require('assert');
+
+module.exports = match;
 
 // get url path section from a url
 // strip querystrings / hashes
 // strip protocol
 // strip hostname and port (both ip and route)
 // str -> str
-function match (route) {
-  assert.equal(typeof route, 'string')
+function match(route) {
+  assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string');
 
-  return route.trim()
-    .replace(/[\?|#].*$/, '')
-    .replace(/^(?:https?\:)\/\//, '')
-    .replace(/^(?:[\w+(?:-\w+)+.])+(?:[\:0-9]{4,5})?/, '')
-    .replace(/\/$/, '')
+  return route.trim().replace(/[\?|#].*$/, '').replace(/^(?:https?\:)\/\//, '').replace(/^(?:[\w+(?:-\w+)+.])+(?:[\:0-9]{4,5})?/, '').replace(/\/$/, '');
 }
 
-},{"assert":3}],15:[function(require,module,exports){
-var extend = require('xtend')
+},{"assert":3}],17:[function(require,module,exports){
+'use strict';
 
-module.exports = function sendAction (options) {
-  if (!options) throw new Error('options required')
-  if (!options.onaction) throw new Error('options.onaction required')
-  if (!options.onchange) throw new Error('options.onchange required')
-  var state = options.state || {}
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-  function send (action, params) {
-    if (typeof action === 'object') params = action
-    else if (typeof action === 'string') params = extend({ type: action }, params)
+var window = require('global/window');
+var assert = require('assert');
 
-    var newState = options.onaction(params, state, send)
-    update(params, newState)
-  }
+module.exports = hash;
 
-  function update (params, newState) {
-    var oldState = state
-    state = extend(state, newState)
-    options.onchange(params, newState, oldState)
-  }
-
-  send.event = function sendAction_event (action, params, flag) {
-    if (typeof flag === undefined) flag = true
-    return function sendAction_send_thunk (e) {
-      if (flag && e && e.preventDefault) e.preventDefault()
-      send(action, params, flag)
-    }
-  }
-
-  send.state = function sendAction_state () {
-    return state
-  }
-
-  return send
+// listen to window hashchange events
+// and update router accordingly
+// fn(cb) -> null
+function hash(cb) {
+  assert.equal(typeof cb === 'undefined' ? 'undefined' : _typeof(cb), 'function', 'cb must be a function');
+  window.onhashchange = function (e) {
+    cb(window.location.hash);
+  };
 }
 
-},{"xtend":24}],16:[function(require,module,exports){
-const document = require('global/document')
-const window = require('global/window')
-const assert = require('assert')
+},{"assert":3,"global/window":11}],18:[function(require,module,exports){
+'use strict';
 
-module.exports = history
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var document = require('global/document');
+var window = require('global/window');
+var assert = require('assert');
+
+module.exports = history;
 
 // listen to html5 pushstate events
 // and update router accordingly
 // fn(str) -> null
-function history (cb) {
-  assert.equal(typeof cb, 'function', 'cb must be a function')
+function history(cb) {
+  assert.equal(typeof cb === 'undefined' ? 'undefined' : _typeof(cb), 'function', 'cb must be a function');
   window.onpopstate = function () {
-    cb(document.location.href)
-  }
+    cb(document.location.href);
+  };
 }
 
-},{"assert":3,"global/document":8,"global/window":9}],17:[function(require,module,exports){
-const window = require('global/window')
-const assert = require('assert')
+},{"assert":3,"global/document":10,"global/window":11}],19:[function(require,module,exports){
+'use strict';
 
-module.exports = href
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var window = require('global/window');
+var assert = require('assert');
+
+module.exports = href;
 
 // handle a click if is anchor tag with an href
 // and url lives on the same domain. Replaces
 // trailing '#' so empty links work as expected.
 // fn(str) -> null
-function href (cb) {
-  assert.equal(typeof cb, 'function', 'cb must be a function')
+function href(cb) {
+  assert.equal(typeof cb === 'undefined' ? 'undefined' : _typeof(cb), 'function', 'cb must be a function');
 
   window.onclick = function (e) {
-    const node = (function traverse (node) {
-      if (!node) return
-      if (node.localName !== 'a') return traverse(node.parentNode)
-      if (node.href === undefined) return traverse(node.parentNode)
-      if (window.location.host !== node.host) return traverse(node.parentNode)
-      return node
-    })(e.target)
+    var node = function traverse(node) {
+      if (!node) return;
+      if (node.localName !== 'a') return traverse(node.parentNode);
+      if (node.href === undefined) return traverse(node.parentNode);
+      if (window.location.host !== node.host) return traverse(node.parentNode);
+      return node;
+    }(e.target);
 
-    if (!node) return
+    if (!node) return;
 
-    e.preventDefault()
-    const href = node.href.replace(/#$/, '')
-    cb(href)
-    window.history.pushState({}, null, href)
-  }
+    e.preventDefault();
+    var href = node.href.replace(/#$/, '');
+    cb(href);
+    window.history.pushState({}, null, href);
+  };
 }
 
-},{"assert":3,"global/window":9}],18:[function(require,module,exports){
-const pathname = require('pathname-match')
-const wayfarer = require('wayfarer')
-const assert = require('assert')
+},{"assert":3,"global/window":11}],20:[function(require,module,exports){
+'use strict';
 
-module.exports = sheetRouter
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var pathname = require('pathname-match');
+var wayfarer = require('wayfarer');
+var assert = require('assert');
+
+module.exports = sheetRouter;
 
 // Fast, modular client router
 // fn(str, any[..], fn?) -> fn(str, any[..])
-function sheetRouter (dft, createTree, createRoute) {
-  createRoute = createRoute ? createRoute(r) : r
+function sheetRouter(dft, createTree, createRoute) {
+  createRoute = createRoute ? createRoute(_createRoute) : _createRoute;
+
   if (!createTree) {
-    createTree = dft
-    dft = ''
+    createTree = dft;
+    dft = '';
   }
 
-  assert.equal(typeof dft, 'string', 'dft must be a string')
-  assert.equal(typeof createTree, 'function', 'createTree must be a function')
+  assert.equal(typeof dft === 'undefined' ? 'undefined' : _typeof(dft), 'string', 'sheet-router: dft must be a string');
+  assert.equal(typeof createTree === 'undefined' ? 'undefined' : _typeof(createTree), 'function', 'sheet-router: createTree must be a function');
+  assert.equal(typeof createRoute === 'undefined' ? 'undefined' : _typeof(createRoute), 'function', 'sheet-router: createRoute must be a function');
 
-  const router = wayfarer(dft)
-  const tree = createTree(createRoute)
+  var router = wayfarer(dft);
+  var tree = createTree(createRoute)
 
   // register tree in router
-  ;(function walk (tree, route) {
+  ;(function walk(tree, route) {
     if (Array.isArray(tree[0])) {
       // walk over all routes at the root of the tree
       tree.forEach(function (node) {
-        walk(node, route)
-      })
+        walk(node, route);
+      });
     } else if (tree[1]) {
       // handle inline functions as args
-      const innerRoute = tree[0]
-        ? route.concat(tree[0]).join('/')
-        : route.length ? route.join('/') : tree[0]
-      router.on(innerRoute, tree[1])
-      walk(tree[2], route.concat(tree[0]))
+      var innerRoute = tree[0] ? route.concat(tree[0]).join('/') : route.length ? route.join('/') : tree[0];
+      router.on(innerRoute, tree[1]);
+      walk(tree[2], route.concat(tree[0]));
     } else if (Array.isArray(tree[2])) {
       // traverse and append route
-      walk(tree[2], route.concat(tree[0]))
+      walk(tree[2], route.concat(tree[0]));
     } else {
       // register path in router
-      const nwRoute = tree[0]
-        ? route.concat(tree[0]).join('/')
-        : route.length ? route.join('/') : tree[0]
-      router.on(nwRoute, tree[2])
+      var nwRoute = tree[0] ? route.concat(tree[0]).join('/') : route.length ? route.join('/') : tree[0];
+      router.on(nwRoute, tree[2]);
     }
-  })(tree, [])
+  })(tree, []);
 
   // match a route on the router
-  return function match (route) {
-    assert.equal(typeof route, 'string', 'route must be a string')
-    const args = [].slice.call(arguments)
-    args[0] = pathname(args[0])
-    return router.apply(null, args)
-  }
+  return function match(route) {
+    assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'route must be a string');
+    var args = [].slice.call(arguments);
+    args[0] = pathname(args[0]);
+    return router.apply(null, args);
+  };
 }
 
 // register regular route
-function r (route, inline, child) {
+function _createRoute(route, inline, child) {
   if (!child) {
-    child = inline
-    inline = null
+    child = inline;
+    inline = null;
   }
-  assert.equal(typeof route, 'string', 'route must be a string')
-  assert.ok(child, 'child exists')
-  route = route.replace(/^\//, '')
-  return [ route, inline, child ]
+  assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'route must be a string');
+  assert.ok(child, 'child exists');
+  route = route.replace(/^\//, '');
+  return [route, inline, child];
 }
 
-},{"assert":3,"pathname-match":14,"wayfarer":22}],19:[function(require,module,exports){
+},{"assert":3,"pathname-match":16,"wayfarer":23}],21:[function(require,module,exports){
+'use strict';
 
-/**
- * An Array.prototype.slice.call(arguments) alternative
- *
- * @param {Object} args something with a length
- * @param {Number} slice
- * @param {Number} sliceEnd
- * @api public
- */
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-module.exports = function (args, slice, sliceEnd) {
-  var ret = [];
-  var len = args.length;
-
-  if (0 === len) return ret;
-
-  var start = slice < 0
-    ? Math.max(0, slice + len)
-    : slice || 0;
-
-  if (sliceEnd !== undefined) {
-    len = sliceEnd < 0
-      ? sliceEnd + len
-      : sliceEnd
-  }
-
-  while (len-- > start) {
-    ret[len - start] = args[len];
-  }
-
-  return ret;
-}
-
-
-},{}],20:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
-  return arg && typeof arg === 'object'
-    && typeof arg.copy === 'function'
-    && typeof arg.fill === 'function'
-    && typeof arg.readUInt8 === 'function';
-}
-},{}],21:[function(require,module,exports){
+  return arg && (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'object' && typeof arg.copy === 'function' && typeof arg.fill === 'function' && typeof arg.readUInt8 === 'function';
+};
+
+},{}],22:[function(require,module,exports){
 (function (process,global){
+'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -1945,7 +1922,7 @@ module.exports = function isBuffer(arg) {
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 var formatRegExp = /%[sdj%]/g;
-exports.format = function(f) {
+exports.format = function (f) {
   if (!isString(f)) {
     var objects = [];
     for (var i = 0; i < arguments.length; i++) {
@@ -1957,12 +1934,14 @@ exports.format = function(f) {
   var i = 1;
   var args = arguments;
   var len = args.length;
-  var str = String(f).replace(formatRegExp, function(x) {
+  var str = String(f).replace(formatRegExp, function (x) {
     if (x === '%%') return '%';
     if (i >= len) return x;
     switch (x) {
-      case '%s': return String(args[i++]);
-      case '%d': return Number(args[i++]);
+      case '%s':
+        return String(args[i++]);
+      case '%d':
+        return Number(args[i++]);
       case '%j':
         try {
           return JSON.stringify(args[i++]);
@@ -1983,14 +1962,13 @@ exports.format = function(f) {
   return str;
 };
 
-
 // Mark that a method should not be used.
 // Returns a modified function which warns once by default.
 // If --no-deprecation is set, then it is a no-op.
-exports.deprecate = function(fn, msg) {
+exports.deprecate = function (fn, msg) {
   // Allow for deprecating things in the process of starting up.
   if (isUndefined(global.process)) {
-    return function() {
+    return function () {
       return exports.deprecate(fn, msg).apply(this, arguments);
     };
   }
@@ -2017,27 +1995,24 @@ exports.deprecate = function(fn, msg) {
   return deprecated;
 };
 
-
 var debugs = {};
 var debugEnviron;
-exports.debuglog = function(set) {
-  if (isUndefined(debugEnviron))
-    debugEnviron = process.env.NODE_DEBUG || '';
+exports.debuglog = function (set) {
+  if (isUndefined(debugEnviron)) debugEnviron = process.env.NODE_DEBUG || '';
   set = set.toUpperCase();
   if (!debugs[set]) {
     if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
       var pid = process.pid;
-      debugs[set] = function() {
+      debugs[set] = function () {
         var msg = exports.format.apply(exports, arguments);
         console.error('%s %d: %s', set, pid, msg);
       };
     } else {
-      debugs[set] = function() {};
+      debugs[set] = function () {};
     }
   }
   return debugs[set];
 };
-
 
 /**
  * Echos the value of a value. Trys to print the value out
@@ -2073,22 +2048,21 @@ function inspect(obj, opts) {
 }
 exports.inspect = inspect;
 
-
 // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
 inspect.colors = {
-  'bold' : [1, 22],
-  'italic' : [3, 23],
-  'underline' : [4, 24],
-  'inverse' : [7, 27],
-  'white' : [37, 39],
-  'grey' : [90, 39],
-  'black' : [30, 39],
-  'blue' : [34, 39],
-  'cyan' : [36, 39],
-  'green' : [32, 39],
-  'magenta' : [35, 39],
-  'red' : [31, 39],
-  'yellow' : [33, 39]
+  'bold': [1, 22],
+  'italic': [3, 23],
+  'underline': [4, 24],
+  'inverse': [7, 27],
+  'white': [37, 39],
+  'grey': [90, 39],
+  'black': [30, 39],
+  'blue': [34, 39],
+  'cyan': [36, 39],
+  'green': [32, 39],
+  'magenta': [35, 39],
+  'red': [31, 39],
+  'yellow': [33, 39]
 };
 
 // Don't use 'blue' not visible on cmd.exe
@@ -2104,45 +2078,38 @@ inspect.styles = {
   'regexp': 'red'
 };
 
-
 function stylizeWithColor(str, styleType) {
   var style = inspect.styles[styleType];
 
   if (style) {
-    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
-           '\u001b[' + inspect.colors[style][1] + 'm';
+    return '\u001b[' + inspect.colors[style][0] + 'm' + str + '\u001b[' + inspect.colors[style][1] + 'm';
   } else {
     return str;
   }
 }
 
-
 function stylizeNoColor(str, styleType) {
   return str;
 }
 
-
 function arrayToHash(array) {
   var hash = {};
 
-  array.forEach(function(val, idx) {
+  array.forEach(function (val, idx) {
     hash[val] = true;
   });
 
   return hash;
 }
 
-
 function formatValue(ctx, value, recurseTimes) {
   // Provide a hook for user-specified inspect functions.
   // Check that value is an object with an inspect function on it
-  if (ctx.customInspect &&
-      value &&
-      isFunction(value.inspect) &&
-      // Filter out the util module, it's inspect function is special
-      value.inspect !== exports.inspect &&
-      // Also filter out any prototype objects using the circular check.
-      !(value.constructor && value.constructor.prototype === value)) {
+  if (ctx.customInspect && value && isFunction(value.inspect) &&
+  // Filter out the util module, it's inspect function is special
+  value.inspect !== exports.inspect &&
+  // Also filter out any prototype objects using the circular check.
+  !(value.constructor && value.constructor.prototype === value)) {
     var ret = value.inspect(recurseTimes, ctx);
     if (!isString(ret)) {
       ret = formatValue(ctx, ret, recurseTimes);
@@ -2166,8 +2133,7 @@ function formatValue(ctx, value, recurseTimes) {
 
   // IE doesn't make error fields non-enumerable
   // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
-  if (isError(value)
-      && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
+  if (isError(value) && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
     return formatError(value);
   }
 
@@ -2188,7 +2154,9 @@ function formatValue(ctx, value, recurseTimes) {
     }
   }
 
-  var base = '', array = false, braces = ['{', '}'];
+  var base = '',
+      array = false,
+      braces = ['{', '}'];
 
   // Make Array say that they are Array
   if (isArray(value)) {
@@ -2235,7 +2203,7 @@ function formatValue(ctx, value, recurseTimes) {
   if (array) {
     output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
   } else {
-    output = keys.map(function(key) {
+    output = keys.map(function (key) {
       return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
     });
   }
@@ -2245,50 +2213,38 @@ function formatValue(ctx, value, recurseTimes) {
   return reduceToSingleString(output, base, braces);
 }
 
-
 function formatPrimitive(ctx, value) {
-  if (isUndefined(value))
-    return ctx.stylize('undefined', 'undefined');
+  if (isUndefined(value)) return ctx.stylize('undefined', 'undefined');
   if (isString(value)) {
-    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
-                                             .replace(/'/g, "\\'")
-                                             .replace(/\\"/g, '"') + '\'';
+    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '').replace(/'/g, "\\'").replace(/\\"/g, '"') + '\'';
     return ctx.stylize(simple, 'string');
   }
-  if (isNumber(value))
-    return ctx.stylize('' + value, 'number');
-  if (isBoolean(value))
-    return ctx.stylize('' + value, 'boolean');
+  if (isNumber(value)) return ctx.stylize('' + value, 'number');
+  if (isBoolean(value)) return ctx.stylize('' + value, 'boolean');
   // For some reason typeof null is "object", so special case here.
-  if (isNull(value))
-    return ctx.stylize('null', 'null');
+  if (isNull(value)) return ctx.stylize('null', 'null');
 }
-
 
 function formatError(value) {
   return '[' + Error.prototype.toString.call(value) + ']';
 }
 
-
 function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
   var output = [];
   for (var i = 0, l = value.length; i < l; ++i) {
     if (hasOwnProperty(value, String(i))) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          String(i), true));
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys, String(i), true));
     } else {
       output.push('');
     }
   }
-  keys.forEach(function(key) {
+  keys.forEach(function (key) {
     if (!key.match(/^\d+$/)) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          key, true));
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys, key, true));
     }
   });
   return output;
 }
-
 
 function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
   var name, str, desc;
@@ -2316,11 +2272,11 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
       }
       if (str.indexOf('\n') > -1) {
         if (array) {
-          str = str.split('\n').map(function(line) {
+          str = str.split('\n').map(function (line) {
             return '  ' + line;
           }).join('\n').substr(2);
         } else {
-          str = '\n' + str.split('\n').map(function(line) {
+          str = '\n' + str.split('\n').map(function (line) {
             return '   ' + line;
           }).join('\n');
         }
@@ -2338,9 +2294,7 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
       name = name.substr(1, name.length - 2);
       name = ctx.stylize(name, 'name');
     } else {
-      name = name.replace(/'/g, "\\'")
-                 .replace(/\\"/g, '"')
-                 .replace(/(^"|"$)/g, "'");
+      name = name.replace(/'/g, "\\'").replace(/\\"/g, '"').replace(/(^"|"$)/g, "'");
       name = ctx.stylize(name, 'string');
     }
   }
@@ -2348,27 +2302,20 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
   return name + ': ' + str;
 }
 
-
 function reduceToSingleString(output, base, braces) {
   var numLinesEst = 0;
-  var length = output.reduce(function(prev, cur) {
+  var length = output.reduce(function (prev, cur) {
     numLinesEst++;
     if (cur.indexOf('\n') >= 0) numLinesEst++;
     return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
   }, 0);
 
   if (length > 60) {
-    return braces[0] +
-           (base === '' ? '' : base + '\n ') +
-           ' ' +
-           output.join(',\n  ') +
-           ' ' +
-           braces[1];
+    return braces[0] + (base === '' ? '' : base + '\n ') + ' ' + output.join(',\n  ') + ' ' + braces[1];
   }
 
   return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
 }
-
 
 // NOTE: These type checking functions intentionally don't use `instanceof`
 // because it is fragile and can be easily faked with `Object.create()`.
@@ -2403,7 +2350,7 @@ function isString(arg) {
 exports.isString = isString;
 
 function isSymbol(arg) {
-  return typeof arg === 'symbol';
+  return (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'symbol';
 }
 exports.isSymbol = isSymbol;
 
@@ -2418,7 +2365,7 @@ function isRegExp(re) {
 exports.isRegExp = isRegExp;
 
 function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
+  return (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'object' && arg !== null;
 }
 exports.isObject = isObject;
 
@@ -2428,8 +2375,7 @@ function isDate(d) {
 exports.isDate = isDate;
 
 function isError(e) {
-  return isObject(e) &&
-      (objectToString(e) === '[object Error]' || e instanceof Error);
+  return isObject(e) && (objectToString(e) === '[object Error]' || e instanceof Error);
 }
 exports.isError = isError;
 
@@ -2439,12 +2385,8 @@ function isFunction(arg) {
 exports.isFunction = isFunction;
 
 function isPrimitive(arg) {
-  return arg === null ||
-         typeof arg === 'boolean' ||
-         typeof arg === 'number' ||
-         typeof arg === 'string' ||
-         typeof arg === 'symbol' ||  // ES6 symbol
-         typeof arg === 'undefined';
+  return arg === null || typeof arg === 'boolean' || typeof arg === 'number' || typeof arg === 'string' || (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'symbol' || // ES6 symbol
+  typeof arg === 'undefined';
 }
 exports.isPrimitive = isPrimitive;
 
@@ -2454,30 +2396,23 @@ function objectToString(o) {
   return Object.prototype.toString.call(o);
 }
 
-
 function pad(n) {
   return n < 10 ? '0' + n.toString(10) : n.toString(10);
 }
 
-
-var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-              'Oct', 'Nov', 'Dec'];
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // 26 Feb 16:19:34
 function timestamp() {
   var d = new Date();
-  var time = [pad(d.getHours()),
-              pad(d.getMinutes()),
-              pad(d.getSeconds())].join(':');
+  var time = [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(':');
   return [d.getDate(), months[d.getMonth()], time].join(' ');
 }
 
-
 // log is just a thin wrapper to console.log that prepends a timestamp
-exports.log = function() {
+exports.log = function () {
   console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
 };
-
 
 /**
  * Inherit the prototype methods from one constructor into another.
@@ -2494,7 +2429,7 @@ exports.log = function() {
  */
 exports.inherits = require('inherits');
 
-exports._extend = function(origin, add) {
+exports._extend = function (origin, add) {
   // Don't do anything if add isn't an object
   if (!add || !isObject(add)) return origin;
 
@@ -2511,351 +2446,414 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":20,"_process":6,"inherits":12}],22:[function(require,module,exports){
-const assert = require('assert')
-const sliced = require('sliced')
-const trie = require('./trie')
+},{"./support/isBuffer":21,"_process":6,"inherits":13}],23:[function(require,module,exports){
+'use strict';
 
-module.exports = Wayfarer
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var assert = require('assert');
+var trie = require('./trie');
+
+module.exports = Wayfarer;
 
 // create a router
 // str -> obj
-function Wayfarer (dft) {
-  if (!(this instanceof Wayfarer)) return new Wayfarer(dft)
+function Wayfarer(dft) {
+  if (!(this instanceof Wayfarer)) return new Wayfarer(dft);
 
-  const _default = (dft || '').replace(/^\//, '')
-  const _trie = trie()
+  var _default = (dft || '').replace(/^\//, '');
+  var _trie = trie();
 
-  emit._trie = _trie
-  emit.emit = emit
-  emit.on = on
-  emit._wayfarer = true
+  emit._trie = _trie;
+  emit.emit = emit;
+  emit.on = on;
+  emit._wayfarer = true;
 
-  return emit
+  return emit;
 
   // define a route
   // (str, fn) -> obj
-  function on (route, cb) {
-    assert.equal(typeof route, 'string')
-    assert.equal(typeof cb, 'function')
+  function on(route, cb) {
+    assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string');
+    assert.equal(typeof cb === 'undefined' ? 'undefined' : _typeof(cb), 'function');
 
-    route = route || '/'
+    route = route || '/';
 
     if (cb && cb._wayfarer && cb._trie) {
-      _trie.mount(route, cb._trie.trie)
+      _trie.mount(route, cb._trie.trie);
     } else {
-      const node = _trie.create(route)
-      node.cb = cb
+      var node = _trie.create(route);
+      node.cb = cb;
     }
 
-    return emit
+    return emit;
   }
 
   // match and call a route
   // (str, obj?) -> null
-  function emit (route) {
-    assert.notEqual(route, undefined, "'route' must be defined")
-    const args = sliced(arguments)
+  function emit(route) {
+    assert.notEqual(route, undefined, "'route' must be defined");
+    var args = Array.prototype.slice.apply(arguments);
 
-    const node = _trie.match(route)
+    var node = _trie.match(route);
     if (node && node.cb) {
-      args[0] = node.params
-      return node.cb.apply(null, args)
+      args[0] = node.params;
+      return node.cb.apply(null, args);
     }
 
-    const dft = _trie.match(_default)
+    var dft = _trie.match(_default);
     if (dft && dft.cb) {
-      args[0] = dft.params
-      return dft.cb.apply(null, args)
+      args[0] = dft.params;
+      return dft.cb.apply(null, args);
     }
 
-    throw new Error("route '" + route + "' did not match")
+    throw new Error("route '" + route + "' did not match");
   }
 }
 
-},{"./trie":23,"assert":3,"sliced":19}],23:[function(require,module,exports){
-const mutate = require('xtend/mutable')
-const assert = require('assert')
-const xtend = require('xtend')
+},{"./trie":24,"assert":3}],24:[function(require,module,exports){
+'use strict';
 
-module.exports = Trie
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var mutate = require('xtend/mutable');
+var assert = require('assert');
+var xtend = require('xtend');
+
+module.exports = Trie;
 
 // create a new trie
 // null -> obj
-function Trie () {
-  if (!(this instanceof Trie)) return new Trie()
-  this.trie = { nodes: {} }
+function Trie() {
+  if (!(this instanceof Trie)) return new Trie();
+  this.trie = { nodes: {} };
 }
 
 // create a node on the trie at route
 // and return a node
 // str -> null
 Trie.prototype.create = function (route) {
-  assert.equal(typeof route, 'string', 'route should be a string')
+  assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'route should be a string');
   // strip leading '/' and split routes
-  const routes = route.replace(/^\//, '').split('/')
-  return (function createNode (index, trie, routes) {
-    const route = routes[index]
+  var routes = route.replace(/^\//, '').split('/');
+  return function createNode(index, trie, routes) {
+    var route = routes[index];
 
-    if (route === undefined) return trie
+    if (route === undefined) return trie;
 
-    var node = null
+    var node = null;
     if (/^:/.test(route)) {
       // if node is a name match, set name and append to ':' node
       if (!trie.nodes['$$']) {
-        node = { nodes: {} }
-        trie.nodes['$$'] = node
+        node = { nodes: {} };
+        trie.nodes['$$'] = node;
       } else {
-        node = trie.nodes['$$']
+        node = trie.nodes['$$'];
       }
-      trie.name = route.replace(/^:/, '')
+      trie.name = route.replace(/^:/, '');
     } else if (!trie.nodes[route]) {
-      node = { nodes: {} }
-      trie.nodes[route] = node
+      node = { nodes: {} };
+      trie.nodes[route] = node;
     } else {
-      node = trie.nodes[route]
+      node = trie.nodes[route];
     }
 
     // we must recurse deeper
-    return createNode(index + 1, node, routes)
-  })(0, this.trie, routes)
-}
+    return createNode(index + 1, node, routes);
+  }(0, this.trie, routes);
+};
 
 // match a route on the trie
 // and return the node
 // str -> obj
 Trie.prototype.match = function (route) {
-  assert.equal(typeof route, 'string', 'route should be a string')
+  assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'route should be a string');
 
-  const routes = route.replace(/^\//, '').split('/')
-  const params = {}
+  var routes = route.replace(/^\//, '').split('/');
+  var params = {};
 
-  var node = (function search (index, trie) {
+  var node = function search(index, trie) {
     // either there's no match, or we're done searching
-    if (trie === undefined) return undefined
-    const route = routes[index]
-    if (route === undefined) return trie
+    if (trie === undefined) return undefined;
+    var route = routes[index];
+    if (route === undefined) return trie;
 
     if (trie.nodes[route]) {
       // match regular routes first
-      return search(index + 1, trie.nodes[route])
+      return search(index + 1, trie.nodes[route]);
     } else if (trie.name) {
       // match named routes
-      params[trie.name] = route
-      return search(index + 1, trie.nodes['$$'])
+      params[trie.name] = route;
+      return search(index + 1, trie.nodes['$$']);
     } else {
       // no matches found
-      return search(index + 1)
+      return search(index + 1);
     }
-  })(0, this.trie)
+  }(0, this.trie);
 
-  if (!node) return undefined
-  node = xtend(node)
-  node.params = params
-  return node
-}
+  if (!node) return undefined;
+  node = xtend(node);
+  node.params = params;
+  return node;
+};
 
 // mount a trie onto a node at route
 // (str, obj) -> null
 Trie.prototype.mount = function (route, trie) {
-  assert.equal(typeof route, 'string', 'route should be a string')
-  assert.equal(typeof trie, 'object', 'trie should be a object')
+  assert.equal(typeof route === 'undefined' ? 'undefined' : _typeof(route), 'string', 'route should be a string');
+  assert.equal(typeof trie === 'undefined' ? 'undefined' : _typeof(trie), 'object', 'trie should be a object');
 
-  const split = route.replace(/^\//, '').split('/')
-  var node = null
-  var key = null
+  var split = route.replace(/^\//, '').split('/');
+  var node = null;
+  var key = null;
 
   if (split.length === 1) {
-    key = split[0]
-    node = this.create(key)
+    key = split[0];
+    node = this.create(key);
   } else {
-    const headArr = split.splice(0, split.length - 1)
-    const head = headArr.join('/')
-    key = split[0]
-    node = this.create(head)
+    var headArr = split.splice(0, split.length - 1);
+    var head = headArr.join('/');
+    key = split[0];
+    node = this.create(head);
   }
 
-  mutate(node.nodes, trie.nodes)
-  if (trie.name) node.name = trie.name
+  mutate(node.nodes, trie.nodes);
+  if (trie.name) node.name = trie.name;
 
   // delegate properties from '/' to the new node
   // '/' cannot be reached once mounted
   if (node.nodes['']) {
     Object.keys(node.nodes['']).forEach(function (key) {
-      if (key === 'nodes') return
-      node[key] = node.nodes[''][key]
-    })
-    mutate(node.nodes, node.nodes[''].nodes)
-    delete node.nodes[''].nodes
+      if (key === 'nodes') return;
+      node[key] = node.nodes[''][key];
+    });
+    mutate(node.nodes, node.nodes[''].nodes);
+    delete node.nodes[''].nodes;
   }
-}
+};
 
-},{"assert":3,"xtend":24,"xtend/mutable":25}],24:[function(require,module,exports){
-module.exports = extend
+},{"assert":3,"xtend":25,"xtend/mutable":26}],25:[function(require,module,exports){
+"use strict";
+
+module.exports = extend;
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function extend() {
-    var target = {}
+    var target = {};
 
     for (var i = 0; i < arguments.length; i++) {
-        var source = arguments[i]
+        var source = arguments[i];
 
         for (var key in source) {
             if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
+                target[key] = source[key];
             }
         }
     }
 
-    return target
+    return target;
 }
 
-},{}],25:[function(require,module,exports){
-module.exports = extend
+},{}],26:[function(require,module,exports){
+"use strict";
+
+module.exports = extend;
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function extend(target) {
     for (var i = 1; i < arguments.length; i++) {
-        var source = arguments[i]
+        var source = arguments[i];
 
         for (var key in source) {
             if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
+                target[key] = source[key];
             }
         }
     }
 
-    return target
+    return target;
 }
 
-},{}],26:[function(require,module,exports){
-var bel = require('bel') // turns template tag into DOM elements
-var morphdom = require('morphdom') // efficiently diffs + morphs two DOM elements
-var defaultEvents = require('./update-events.js') // default events to be copied when dom elements update
+},{}],27:[function(require,module,exports){
+'use strict';
 
-module.exports = bel
+var bel = {}; // turns template tag into DOM elements
+var morphdom = require('morphdom'); // efficiently diffs + morphs two DOM elements
+var defaultEvents = require('./update-events.js'); // default events to be copied when dom elements update
+
+module.exports = bel;
 
 // TODO move this + defaultEvents to a new module once we receive more feedback
 module.exports.update = function (fromNode, toNode, opts) {
-  if (!opts) opts = {}
+  if (!opts) opts = {};
   if (opts.events !== false) {
-    if (!opts.onBeforeMorphEl) opts.onBeforeMorphEl = copier
+    if (!opts.onBeforeMorphEl) opts.onBeforeMorphEl = copier;
   }
 
-  return morphdom(fromNode, toNode, opts)
+  return morphdom(fromNode, toNode, opts);
 
   // morphdom only copies attributes. we decided we also wanted to copy events
   // that can be set via attributes
-  function copier (f, t) {
+  function copier(f, t) {
     // copy events:
-    var events = opts.events || defaultEvents
+    var events = opts.events || defaultEvents;
     for (var i = 0; i < events.length; i++) {
-      var ev = events[i]
-      if (t[ev]) { // if new element has a whitelisted attribute
-        f[ev] = t[ev] // update existing element
-      } else if (f[ev]) { // if existing element has it and new one doesnt
-        f[ev] = undefined // remove it from existing element
+      var ev = events[i];
+      if (t[ev]) {
+        // if new element has a whitelisted attribute
+        f[ev] = t[ev]; // update existing element
+      } else if (f[ev]) {
+        // if existing element has it and new one doesnt
+        f[ev] = undefined; // remove it from existing element
       }
     }
     // copy values for form elements
-    if (f.nodeName === 'INPUT' || f.nodeName === 'TEXTAREA' || f.nodeNAME === 'SELECT') {
-      if (t.getAttribute('value') === null) t.value = f.value
+    if (f.nodeName === 'INPUT' && f.type !== 'file' || f.nodeName === 'TEXTAREA' || f.nodeName === 'SELECT') {
+      if (t.getAttribute('value') === null) t.value = f.value;
     }
   }
-}
+};
 
-},{"./update-events.js":27,"bel":4,"morphdom":13}],27:[function(require,module,exports){
-module.exports = [
-  // attribute events (can be set with attributes)
-  'onclick',
-  'ondblclick',
-  'onmousedown',
-  'onmouseup',
-  'onmouseover',
-  'onmousemove',
-  'onmouseout',
-  'ondragstart',
-  'ondrag',
-  'ondragenter',
-  'ondragleave',
-  'ondragover',
-  'ondrop',
-  'ondragend',
-  'onkeydown',
-  'onkeypress',
-  'onkeyup',
-  'onunload',
-  'onabort',
-  'onerror',
-  'onresize',
-  'onscroll',
-  'onselect',
-  'onchange',
-  'onsubmit',
-  'onreset',
-  'onfocus',
-  'onblur',
-  'oninput',
-  // other common events
-  'oncontextmenu',
-  'onfocusin',
-  'onfocusout'
-]
-
-},{}],28:[function(require,module,exports){
+},{"./update-events.js":28,"morphdom":14}],28:[function(require,module,exports){
 'use strict';
 
-var _templateObject = _taggedTemplateLiteral(['\n  <button class="clear-completed" onclick=', '>Clear completed</button>\n'], ['\n  <button class="clear-completed" onclick=', '>Clear completed</button>\n']),
-    _templateObject2 = _taggedTemplateLiteral(['\n  <li><a href="#" onclick=', ' class=', '>', '</a></li>\n'], ['\n  <li><a href="#" onclick=', ' class=', '>', '</a></li>\n']),
-    _templateObject3 = _taggedTemplateLiteral(['\n  <section class="todoapp">\n    <header class="header">\n      <h1>todos</h1>\n      <input\n        class="new-todo"\n        placeholder="What needs to be done?"\n        value=', '\n        oninput=', '\n        onkeydown=', '\n        autofocus\n        />\n    </header>\n    <section class="main">\n      <input\n        class="toggle-all"\n        type="checkbox"\n        checked=', '\n        onchange=', ' />\n      <label for="toggle-all">Mark all as complete</label>\n      ', '\n    </section>\n    <footer class="footer">\n      <span class="todo-count">\n        <strong>', '</strong>\n        item', ' left\n      </span>\n      <ul class="filters">\n        ', '\n        ', '\n        ', '\n      </ul>\n      ', '\n    </footer>\n  </section>\n'], ['\n  <section class="todoapp">\n    <header class="header">\n      <h1>todos</h1>\n      <input\n        class="new-todo"\n        placeholder="What needs to be done?"\n        value=', '\n        oninput=', '\n        onkeydown=', '\n        autofocus\n        />\n    </header>\n    <section class="main">\n      <input\n        class="toggle-all"\n        type="checkbox"\n        checked=', '\n        onchange=', ' />\n      <label for="toggle-all">Mark all as complete</label>\n      ', '\n    </section>\n    <footer class="footer">\n      <span class="todo-count">\n        <strong>', '</strong>\n        item', ' left\n      </span>\n      <ul class="filters">\n        ', '\n        ', '\n        ', '\n      </ul>\n      ', '\n    </footer>\n  </section>\n']);
+module.exports = [
+// attribute events (can be set with attributes)
+'onclick', 'ondblclick', 'onmousedown', 'onmouseup', 'onmouseover', 'onmousemove', 'onmouseout', 'ondragstart', 'ondrag', 'ondragenter', 'ondragleave', 'ondragover', 'ondrop', 'ondragend', 'onkeydown', 'onkeypress', 'onkeyup', 'onunload', 'onabort', 'onerror', 'onresize', 'onscroll', 'onselect', 'onchange', 'onsubmit', 'onreset', 'onfocus', 'onblur', 'oninput',
+// other common events
+'oncontextmenu', 'onfocusin', 'onfocusout'];
 
-function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
+},{}],29:[function(require,module,exports){
+'use strict';
 
-var choo = require('choo');
+module.exports = function yoyoifyAppendChild(el, childs) {
+  for (var i = 0; i < childs.length; i++) {
+    var node = childs[i];
+    if (Array.isArray(node)) {
+      yoyoifyAppendChild(el, node);
+      continue;
+    }
+    if (typeof node === 'number' || typeof node === 'boolean' || node instanceof Date || node instanceof RegExp) {
+      node = node.toString();
+    }
+    if (typeof node === 'string') {
+      if (el.lastChild && el.lastChild.nodeName === '#text') {
+        el.lastChild.nodeValue += node;
+        continue;
+      }
+      node = document.createTextNode(node);
+    }
+    if (node && node.nodeType) {
+      el.appendChild(node);
+    }
+  }
+};
+
+},{}],30:[function(require,module,exports){
+'use strict';
+
+var html = require('choo/html');
 var todoListView = require('./todo-list');
 
 var clearCompletedButton = function clearCompletedButton(send) {
-  return choo.view(_templateObject, function (e) {
-    return send('clearCompleted');
-  });
+      return function () {
+
+            var ac = require('/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js');
+            var bel0 = document.createElement("button");
+            bel0["onclick"] = arguments[0];
+            bel0.setAttribute("class", "clear-completed");
+            ac(bel0, ["Clear completed"]);
+            return bel0;
+      }(function (e) {
+            return send('clearCompleted');
+      });
 };
 
 var selectedClass = function selectedClass(state, filter) {
-  return state.filter === filter ? 'selected' : '';
+      return state.filter === filter ? 'selected' : '';
 };
 
 var filterButton = function filterButton(name, filter, state, send) {
-  return choo.view(_templateObject2, function (e) {
-    return send('filter', { payload: filter });
-  }, selectedClass(state, filter), name);
+      return function () {
+
+            var ac = require('/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js');
+            var bel1 = document.createElement("li");
+            var bel0 = document.createElement("a");
+            bel0.setAttribute("href", "#");
+            bel0["onclick"] = arguments[0];
+            bel0.setAttribute("class", arguments[1]);
+            ac(bel0, [arguments[2]]);
+            ac(bel1, [bel0]);
+            return bel1;
+      }(function (e) {
+            return send('filter', { payload: filter });
+      }, selectedClass(state, filter), name);
 };
 
-module.exports = function (params, state, send) {
-  return choo.view(_templateObject3, state.name, function (e) {
-    return send('updateNew', { payload: e.target.value });
-  }, function (e) {
-    return e.keyCode === 13 && send('add') || true;
-  }, state.todos.every(function (todo) {
-    return todo.done;
-  }), function (e) {
-    return send('toggleAll');
-  }, todoListView(state, send), state.todos.filter(function (todo) {
-    return !todo.done;
-  }).length, state.todos.length === 1 ? '' : 's', filterButton('All', '', state, send), filterButton('Active', 'active', state, send), filterButton('Completed', 'completed', state, send), state.todos.some(function (todo) {
-    return todo.done;
-  }) ? clearCompletedButton(send) : '');
+module.exports = function (state, prev, send) {
+      prev = prev || {};
+      return function () {
+
+            var ac = require('/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js');
+            var bel10 = document.createElement("section");
+            bel10.setAttribute("class", "todoapp");
+            var bel2 = document.createElement("header");
+            bel2.setAttribute("class", "header");
+            var bel0 = document.createElement("h1");
+            ac(bel0, ["todos"]);
+            var bel1 = document.createElement("input");
+            bel1.setAttribute("placeholder", "What needs to be done?");
+            bel1.setAttribute("value", arguments[0]);
+            bel1["oninput"] = arguments[1];
+            bel1["onkeydown"] = arguments[2];
+            bel1.setAttribute("autofocus", "autofocus");
+            bel1.setAttribute("class", "new-todo");
+            ac(bel2, ["\n        ", bel0, "\n        ", bel1, "\n      "]);
+            var bel5 = document.createElement("section");
+            bel5.setAttribute("class", "main");
+            var bel3 = document.createElement("input");
+            bel3.setAttribute("type", "checkbox");
+            bel3.setAttribute("checked", arguments[3]);
+            bel3["onchange"] = arguments[4];
+            bel3.setAttribute("class", "toggle-all");
+            var bel4 = document.createElement("label");
+            bel4.setAttribute("htmlFor", "toggle-all");
+            ac(bel4, ["Mark all as complete"]);
+            ac(bel5, ["\n        ", bel3, "\n        ", bel4, "\n        ", arguments[5], "\n      "]);
+            var bel9 = document.createElement("footer");
+            bel9.setAttribute("class", "footer");
+            var bel7 = document.createElement("span");
+            bel7.setAttribute("class", "todo-count");
+            var bel6 = document.createElement("strong");
+            ac(bel6, [arguments[6]]);
+            ac(bel7, ["\n          ", bel6, "\n          item", arguments[7], " left\n        "]);
+            var bel8 = document.createElement("ul");
+            bel8.setAttribute("class", "filters");
+            ac(bel8, ["\n          ", arguments[8], "\n          ", arguments[9], "\n          ", arguments[10], "\n        "]);
+            ac(bel9, ["\n        ", bel7, "\n        ", bel8, "\n        ", arguments[11], "\n      "]);
+            ac(bel10, ["\n      ", bel2, "\n      ", bel5, "\n      ", bel9, "\n    "]);
+            return bel10;
+      }(state.name, function (e) {
+            return send('updateNew', { payload: e.target.value });
+      }, function (e) {
+            return e.keyCode === 13 && send('add') || true;
+      }, state.todos.every(function (todo) {
+            return todo.done;
+      }), function (e) {
+            return send('toggleAll');
+      }, todoListView(state, send), state.todos.filter(function (todo) {
+            return !todo.done;
+      }).length, state.todos.length === 1 ? '' : 's', filterButton('All', '', state, send), filterButton('Active', 'active', state, send), filterButton('Completed', 'completed', state, send), state.todos.some(function (todo) {
+            return todo.done;
+      }) ? clearCompletedButton(send) : '');
 };
 
-},{"./todo-list":30,"choo":7}],29:[function(require,module,exports){
+},{"./todo-list":32,"/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js":29,"choo/html":7}],31:[function(require,module,exports){
 'use strict';
 
-var _templateObject = _taggedTemplateLiteral(['\n  <li class=', '>\n    <div class="view">\n      <input\n        type="checkbox"\n        class="toggle"\n        checked="', '"\n        onchange=', ' />\n      <label ondblclick=', '>', '</label>\n      <button\n        class="destroy"\n        onclick=', '\n        ></button>\n    </div>\n    <input\n      class="edit"\n      value=', '\n      onkeydown=', '\n      onblur=', ' />\n  </li>\n'], ['\n  <li class=', '>\n    <div class="view">\n      <input\n        type="checkbox"\n        class="toggle"\n        checked="', '"\n        onchange=', ' />\n      <label ondblclick=', '>', '</label>\n      <button\n        class="destroy"\n        onclick=', '\n        ></button>\n    </div>\n    <input\n      class="edit"\n      value=', '\n      onkeydown=', '\n      onblur=', ' />\n  </li>\n']);
-
-function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
-
-var choo = require('choo');
+var html = require('choo/html');
 
 var update = function update(e, todo, send) {
   return send('update', { payload: { id: todo.id, name: e.target.value } });
@@ -2878,7 +2876,33 @@ var classList = function classList(classes) {
 };
 
 var todoItemView = function todoItemView(todo, editing, send) {
-  return choo.view(_templateObject, classList({ completed: todo.done, editing: editing }), todo.done, function (e) {
+  return function () {
+
+    var ac = require('/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js');
+    var bel5 = document.createElement("li");
+    bel5.setAttribute("class", arguments[8]);
+    var bel3 = document.createElement("div");
+    bel3.setAttribute("class", "view");
+    var bel0 = document.createElement("input");
+    bel0.setAttribute("type", "checkbox");
+    bel0.setAttribute("checked", arguments[0]);
+    bel0["onchange"] = arguments[1];
+    bel0.setAttribute("class", "toggle");
+    var bel1 = document.createElement("label");
+    bel1["ondblclick"] = arguments[2];
+    ac(bel1, [arguments[3]]);
+    var bel2 = document.createElement("button");
+    bel2["onclick"] = arguments[4];
+    bel2.setAttribute("class", "destroy");
+    ac(bel3, ["\n      ", bel0, "\n      ", bel1, "\n      ", bel2, "\n    "]);
+    var bel4 = document.createElement("input");
+    bel4.setAttribute("value", arguments[5]);
+    bel4["onkeydown"] = arguments[6];
+    bel4["onblur"] = arguments[7];
+    bel4.setAttribute("class", "edit");
+    ac(bel5, ["\n    ", bel3, "\n    ", bel4, "\n  "]);
+    return bel5;
+  }(todo.done, function (e) {
     return send('toggle', { payload: todo.id });
   }, function (e) {
     return send('edit', { payload: todo.id });
@@ -2888,19 +2912,15 @@ var todoItemView = function todoItemView(todo, editing, send) {
     return handleEditKeydown(e, todo, send);
   }, function (e) {
     return update(e, todo, send);
-  });
+  }, classList({ completed: todo.done, editing: editing }));
 };
 
 module.exports = todoItemView;
 
-},{"choo":7}],30:[function(require,module,exports){
+},{"/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js":29,"choo/html":7}],32:[function(require,module,exports){
 'use strict';
 
-var _templateObject = _taggedTemplateLiteral(['\n  <ul class="todo-list">', '</ul>\n'], ['\n  <ul class="todo-list">', '</ul>\n']);
-
-function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
-
-var choo = require('choo');
+var html = require('choo/html');
 var todoItemView = require('./todo-item');
 
 var filterTodos = function filterTodos(todos, filter) {
@@ -2925,9 +2945,16 @@ var filteredTodos = function filteredTodos(state, send) {
 };
 
 var todoListView = function todoListView(state, send) {
-  return choo.view(_templateObject, filteredTodos(state, send));
+  return function () {
+
+    var ac = require('/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js');
+    var bel0 = document.createElement("ul");
+    bel0.setAttribute("class", "todo-list");
+    ac(bel0, [arguments[0]]);
+    return bel0;
+  }(filteredTodos(state, send));
 };
 
 module.exports = todoListView;
 
-},{"./todo-item":29,"choo":7}]},{},[1]);
+},{"./todo-item":31,"/Users/mattias/Dev/scratch/todomvc-choo/node_modules/yo-yoify/lib/appendChild.js":29,"choo/html":7}]},{},[1]);
