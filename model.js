@@ -11,13 +11,14 @@ module.exports = {
     todos: []
   },
   reducers: {
-    updateNew: (data, state, prev) => ({ name: data.payload }),
-    add: (data, state, prev) => ({
+    initLocalstorageData: (data, state) => xtend({}, state, data),
+    updateNew: (data, state) => ({ name: data.payload }),
+    add: (data, state) => ({
       counter: state.counter + 1,
       name: '',
       todos: state.todos.concat({ id: state.counter, name: state.name, done: false })
     }),
-    toggle: (data, state, prev) => ({
+    toggle: (data, state) => ({
       todos: state.todos.map(todo => {
         if (todo.id === data.payload) {
           return xtend({}, todo, { done: !todo.done })
@@ -26,9 +27,9 @@ module.exports = {
         }
       })
     }),
-    edit: (data, state, prev) => ({ editing: data.payload }),
-    cancelEditing: (data, state, prev) => ({ editing: null }),
-    update: (data, state, prev) => ({
+    edit: (data, state) => ({ editing: data.payload }),
+    cancelEditing: (data, state) => ({ editing: null }),
+    update: (data, state) => ({
       editing: null,
       todos: state.todos.map(todo => {
         if (todo.id === data.payload.id) {
@@ -38,18 +39,26 @@ module.exports = {
         }
       })
     }),
-    delete: (data, state, prev) => ({
+    delete: (data, state) => ({
       todos: state.todos.filter(todo => todo.id !== data.payload)
     }),
-    clearCompleted: (data, state, prev) => ({
+    clearCompleted: (data, state) => ({
       todos: state.todos.filter(todo => !todo.done)
     }),
-    toggleAll: (data, state, prev) => {
+    toggleAll: (data, state) => {
       const allDone = state.todos.every(todo => todo.done)
       return {
         todos: state.todos.map(todo => xtend({}, todo, { done: !allDone }))
       }
     },
-    filter: (data, state, prev) => ({ filter: data.payload })
+    filter: (data, state) => ({ filter: data.payload })
+  },
+  subscriptions: {
+    init: (send, done) => {
+      const savedstr = window.localStorage.getItem('SAVESTATE') || '{}'
+      const initialState = JSON.parse(savedstr).data
+
+      send('initLocalstorageData', initialState, done)
+    }
   }
 }

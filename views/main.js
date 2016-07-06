@@ -12,6 +12,8 @@ const filterButton = (name, filter, state, send) => html`
 `
 
 module.exports = (state, prev, send) => {
+  const handleKeyDown = e => { if (e.keyCode === 13 && state.name) send('add') }
+
   prev = prev || {}
   return html`
     <section class="todoapp">
@@ -22,7 +24,7 @@ module.exports = (state, prev, send) => {
           placeholder="What needs to be done?"
           value=${state.name}
           oninput=${e => send('updateNew', { payload: e.target.value })}
-          onkeydown=${e => e.keyCode === 13 && send('add') || true}
+          onkeydown=${handleKeyDown}
           autofocus
           />
       </header>
